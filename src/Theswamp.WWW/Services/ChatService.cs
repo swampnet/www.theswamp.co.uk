@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Theswamp.WWW.Data;
-using Theswamp.WWW.Hubs;
-using Theswamp.WWW.Models;
+using TheSwamp.WWW.Data;
+using TheSwamp.WWW.Hubs;
+using TheSwamp.WWW.Models;
 
-namespace Theswamp.WWW.Services;
+namespace TheSwamp.WWW.Services;
 
 /// <summary>
 /// Default implementation of <see cref="IChatService"/>.

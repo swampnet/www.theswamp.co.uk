@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
-using Theswamp.WWW.Services;
+using TheSwamp.WWW.Services;
 
-namespace Theswamp.WWW.Hubs;
+namespace TheSwamp.WWW.Hubs;
 
 /// <summary>
 /// SignalR hub for real-time chat.

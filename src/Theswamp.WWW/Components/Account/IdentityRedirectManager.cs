@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
-using Theswamp.WWW.Data;
+using TheSwamp.WWW.Data;
 
-namespace Theswamp.WWW.Components.Account;
+namespace TheSwamp.WWW.Components.Account;
 
 internal sealed class IdentityRedirectManager(NavigationManager navigationManager)
 {

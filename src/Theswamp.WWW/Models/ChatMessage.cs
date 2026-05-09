@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Theswamp.WWW.Models;
+namespace TheSwamp.WWW.Models;
 
 /// <summary>
 /// Represents a single chat message stored in the database.

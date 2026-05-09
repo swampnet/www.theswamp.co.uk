@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
-using Theswamp.WWW.Components.Account.Pages;
-using Theswamp.WWW.Components.Account.Pages.Manage;
-using Theswamp.WWW.Data;
+using TheSwamp.WWW.Components.Account.Pages;
+using TheSwamp.WWW.Components.Account.Pages.Manage;
+using TheSwamp.WWW.Data;
 
 namespace Microsoft.AspNetCore.Routing;
 

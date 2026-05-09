@@ -1,4 +1,4 @@
-namespace Theswamp.WWW.Middleware;
+namespace TheSwamp.WWW.Middleware;
 
 /// <summary>
 /// Simple API key authentication middleware.

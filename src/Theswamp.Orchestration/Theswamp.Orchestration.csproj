@@ -1,7 +1,7 @@
 <Project Sdk="Aspire.AppHost.Sdk/13.3.0">
 
   <ItemGroup>
-    <ProjectReference Include="..\Theswamp.WWW\Theswamp.WWW.csproj" />
+    <ProjectReference Include="..\TheSwamp.WWW\TheSwamp.WWW.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

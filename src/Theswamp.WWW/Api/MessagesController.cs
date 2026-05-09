@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Theswamp.WWW.Models;
-using Theswamp.WWW.Services;
+using TheSwamp.WWW.Models;
+using TheSwamp.WWW.Services;
 
-namespace Theswamp.WWW.Api;
+namespace TheSwamp.WWW.Api;
 
 /// <summary>
 /// API endpoints for chat messages.

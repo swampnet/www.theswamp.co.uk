@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Theswamp.WWW.Components;
-using Theswamp.WWW.Components.Account;
-using Theswamp.WWW.Data;
-using Theswamp.WWW.Hubs;
-using Theswamp.WWW.Middleware;
-using Theswamp.WWW.Services;
+using TheSwamp.WWW.Components;
+using TheSwamp.WWW.Components.Account;
+using TheSwamp.WWW.Data;
+using TheSwamp.WWW.Hubs;
+using TheSwamp.WWW.Middleware;
+using TheSwamp.WWW.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

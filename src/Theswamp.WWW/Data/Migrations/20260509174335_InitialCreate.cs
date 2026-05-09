@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Theswamp.WWW.Data.Migrations
+namespace TheSwamp.WWW.Data.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

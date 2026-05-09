@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace Theswamp.WWW.Services;
+namespace TheSwamp.WWW.Services;
 
 /// <summary>
 /// Seeds required roles into the database on startup.

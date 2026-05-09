@@ -6,7 +6,7 @@
     <File Path="documents/requirements.md" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Theswamp.Orchestration/Theswamp.Orchestration.csproj" />
-    <Project Path="src/Theswamp.WWW/Theswamp.WWW.csproj" />
+    <Project Path="src/TheSwamp.Orchestration/TheSwamp.Orchestration.csproj" />
+    <Project Path="src/TheSwamp.WWW/TheSwamp.WWW.csproj" />
   </Folder>
 </Solution>

@@ -1,4 +1,4 @@
-namespace Theswamp.WWW.Components.Account;
+namespace TheSwamp.WWW.Components.Account;
 
 public enum PasskeyOperation
 {

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Theswamp.WWW.Api;
+namespace TheSwamp.WWW.Api;
 
 /// <summary>
 /// Example endpoint — returns a 5-day weather forecast.

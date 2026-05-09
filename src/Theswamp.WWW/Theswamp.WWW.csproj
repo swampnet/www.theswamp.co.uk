@@ -4,7 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>aspnet-Theswamp_WWW-e1f68cc5-c6be-43da-b877-8bb1e57d7ce6</UserSecretsId>
+    <UserSecretsId>aspnet-TheSwamp_WWW-e1f68cc5-c6be-43da-b877-8bb1e57d7ce6</UserSecretsId>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
   </PropertyGroup>
 

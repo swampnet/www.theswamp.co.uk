@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Theswamp.WWW.Models;
+using TheSwamp.WWW.Models;
 
-namespace Theswamp.WWW.Data;
+namespace TheSwamp.WWW.Data;
 
 /// <summary>
 /// Main application database context.

@@ -1,6 +1,6 @@
-using Theswamp.WWW.Models;
+using TheSwamp.WWW.Models;
 
-namespace Theswamp.WWW.Services;
+namespace TheSwamp.WWW.Services;
 
 /// <summary>
 /// Centralises chat message logic so every send path (API, Blazor page, SignalR hub)
