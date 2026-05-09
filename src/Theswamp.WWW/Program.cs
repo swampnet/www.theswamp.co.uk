@@ -88,6 +88,9 @@ builder.Services.AddSignalR();
 // ChatService is scoped to match ApplicationDbContext's lifetime.
 builder.Services.AddScoped<IChatService, ChatService>();
 
+// ConnectionTracker is singleton — one shared registry across all hub instances.
+builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
+
 // ---------------------------------------------------------------------------
 // API controllers (for /api/* routes)
 // ---------------------------------------------------------------------------

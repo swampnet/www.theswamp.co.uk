@@ -5,6 +5,7 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject TheSwamp.WWW.Services.IChatService ChatService
+@inject TheSwamp.WWW.Services.IConnectionTracker ConnectionTracker
 @implements IAsyncDisposable
 
 <PageTitle>Chat</PageTitle>
@@ -33,6 +34,35 @@
     <p style="color:#666; font-style:italic; margin-top:4px;">@_statusMessage</p>
 }
 
+@if (_isAdmin)
+{
+    <hr />
+    <h4>Connected Users (@_connectedUsers.Count)</h4>
+    <table style="width:100%; font-size:0.85em; border-collapse:collapse;">
+        <thead>
+            <tr style="text-align:left; border-bottom:1px solid #ccc;">
+                <th style="padding:4px 8px;">Display Name</th>
+                <th style="padding:4px 8px;">User ID</th>
+                <th style="padding:4px 8px;">Connection ID</th>
+                <th style="padding:4px 8px;">IP Address</th>
+                <th style="padding:4px 8px;">Connected At</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var conn in _connectedUsers)
+            {
+                <tr style="border-bottom:1px solid #eee;">
+                    <td style="padding:4px 8px;">@conn.DisplayName</td>
+                    <td style="padding:4px 8px; font-family:monospace;">@(conn.UserId ?? "—")</td>
+                    <td style="padding:4px 8px; font-family:monospace;">@conn.ConnectionId</td>
+                    <td style="padding:4px 8px; font-family:monospace;">@conn.IpAddress</td>
+                    <td style="padding:4px 8px;">@conn.ConnectedAt.ToLocalTime().ToString("HH:mm:ss")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
 @code {
     // Simple local model for display — keeps display name alongside the other fields.
     private record DisplayMessage(string DisplayName, string Text, DateTime SentAt);
@@ -48,6 +78,9 @@
     /// </summary>
     private string? _userId;
 
+    private bool _isAdmin;
+    private IReadOnlyList<TheSwamp.WWW.Services.ConnectedUser> _connectedUsers = [];
+
     // Can send once the hub connection is open and there is text to send.
     private bool CanSend => _hubConnection?.State == HubConnectionState.Connected
                             && !string.IsNullOrWhiteSpace(_messageText);
@@ -60,6 +93,7 @@
         if (user.Identity?.IsAuthenticated == true)
         {
             _userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            _isAdmin = user.IsInRole("admin");
         }
 
         // Skip SignalR setup during server-side pre-render; it runs again interactively.
@@ -88,6 +122,7 @@
         {
             var sentAt = DateTime.TryParse(sentAtStr, out var dt) ? dt : DateTime.UtcNow;
             _messages.Add(new DisplayMessage(displayName, text, sentAt));
+            RefreshConnectedUsers();
             InvokeAsync(StateHasChanged);
         });
 
@@ -95,6 +130,7 @@
         _hubConnection.On<string>("UserConnected", (displayName) =>
         {
             _messages.Add(new DisplayMessage("System", $"** {displayName} connected **", DateTime.UtcNow));
+            RefreshConnectedUsers();
             InvokeAsync(StateHasChanged);
         });
 
@@ -102,6 +138,7 @@
         _hubConnection.On<string>("UserDisconnected", (displayName) =>
         {
             _messages.Add(new DisplayMessage("System", $"** {displayName} disconnected **", DateTime.UtcNow));
+            RefreshConnectedUsers();
             InvokeAsync(StateHasChanged);
         });
 
@@ -118,6 +155,18 @@
         foreach (var m in recent)
         {
             _messages.Add(new DisplayMessage(m.DisplayName, m.Text, m.SentOnUtc));
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the connected users snapshot from the tracker.
+    /// Called whenever a connect/disconnect/message event fires so the admin table stays current.
+    /// </summary>
+    private void RefreshConnectedUsers()
+    {
+        if (_isAdmin)
+        {
+            _connectedUsers = ConnectionTracker.GetConnectedUsers();
         }
     }
 

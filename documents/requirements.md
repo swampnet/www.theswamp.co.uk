@@ -40,8 +40,8 @@ Api calls under an /api/ route
 
 # TODO
 
-[ ] pass user id (or null) to chat post. Use username if given, else 'Anon': Do not pass username from client, get it on the server based on user id. 
+[X] pass user id (or null) to chat post. Use username if given, else 'Anon': Do not pass username from client, get it on the server based on user id. 
     This is more secure and prevents impersonation.
-[ ] If user is admin, show a list of all connected users & their connection ids + ip address in the chat page.
+[X] If user is admin, show a list of all connected users & their connection ids + ip address in the chat page.
 [ ] MFA setup
 [X] Rename: Theswamp -> TheSwamp

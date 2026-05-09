@@ -18,10 +18,12 @@ namespace TheSwamp.WWW.Hubs;
 public class ChatHub : Hub
 {
     private readonly IChatService _chatService;
+    private readonly IConnectionTracker _connectionTracker;
 
-    public ChatHub(IChatService chatService)
+    public ChatHub(IChatService chatService, IConnectionTracker connectionTracker)
     {
         _chatService = chatService;
+        _connectionTracker = connectionTracker;
     }
 
     /// <summary>
@@ -46,6 +48,15 @@ public class ChatHub : Hub
             ?? Context.GetHttpContext()?.Request.Query["userId"].ToString();
 
         var displayName = await _chatService.GetDisplayNameAsync(userId);
+        var ipAddress = ResolveIpAddress();
+
+        _connectionTracker.AddConnection(new ConnectedUser(
+            ConnectionId: Context.ConnectionId,
+            UserId: string.IsNullOrWhiteSpace(userId) ? null : userId,
+            DisplayName: displayName,
+            IpAddress: ipAddress,
+            ConnectedAt: DateTime.UtcNow));
+
         await Clients.All.SendAsync("UserConnected", displayName);
         await base.OnConnectedAsync();
     }
@@ -53,11 +64,33 @@ public class ChatHub : Hub
     /// <summary>Announces to all clients that a user has disconnected.</summary>
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        _connectionTracker.RemoveConnection(Context.ConnectionId);
+
         var userId = Context.UserIdentifier
             ?? Context.GetHttpContext()?.Request.Query["userId"].ToString();
 
         var displayName = await _chatService.GetDisplayNameAsync(userId);
         await Clients.Others.SendAsync("UserDisconnected", displayName);
         await base.OnDisconnectedAsync(exception);
+    }
+
+    /// <summary>
+    /// Resolves the client's IP address, checking the X-Forwarded-For header first
+    /// (populated by reverse proxies) then falling back to the direct connection IP.
+    /// </summary>
+    private string ResolveIpAddress()
+    {
+        var http = Context.GetHttpContext();
+        if (http is null) { return "unknown"; }
+
+        // X-Forwarded-For contains the original client IP when behind a proxy.
+        var forwarded = http.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(forwarded))
+        {
+            // The header can be a comma-separated list; first entry is the originating client.
+            return forwarded.Split(',')[0].Trim();
+        }
+
+        return http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
     }
 }
