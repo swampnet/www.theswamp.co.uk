@@ -1,0 +1,132 @@
+@page "/account/api-key"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+@inject TheSwamp.WWW.Services.IApiKeyService ApiKeyService
+@inject TheSwamp.WWW.Data.ApplicationDbContext DbContext
+@using Microsoft.EntityFrameworkCore
+
+<PageTitle>API Key</PageTitle>
+
+<h2>API Key</h2>
+
+<p>
+    Your API key lets external tools call the <code>/api/*</code> endpoints on your behalf.
+    Send it in the <code>X-Api-Key</code> header with every request.
+</p>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <p style="color:green;">@_statusMessage</p>
+}
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <p style="color:red;">@_errorMessage</p>
+}
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Show newly generated key (one-time display)                         -->
+<!-- ------------------------------------------------------------------ -->
+@if (!string.IsNullOrEmpty(_newRawKey))
+{
+    <div style="background:#fffbe6; border:1px solid #ffe58f; padding:12px; margin-bottom:16px; border-radius:4px;">
+        <strong>⚠ Copy your API key now — it will not be shown again.</strong>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" readonly value="@_newRawKey" style="flex:1; font-family:monospace;" onclick="this.select()" />
+        </div>
+    </div>
+}
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Current key status                                                  -->
+<!-- ------------------------------------------------------------------ -->
+@if (_hasKey)
+{
+    <p>✅ You have an active API key.</p>
+    <div style="display:flex; gap:8px;">
+        <button @onclick="GenerateKey">Regenerate Key</button>
+        <button @onclick="RevokeKey" style="color:red;">Revoke Key</button>
+    </div>
+}
+else
+{
+    <p>You don't have an active API key.</p>
+    <button @onclick="GenerateKey">Generate Key</button>
+}
+
+@code {
+    private string? _userId;
+    private bool _hasKey;
+    private string _newRawKey = string.Empty;
+    private string _statusMessage = string.Empty;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        await RefreshKeyStatusAsync();
+    }
+
+    /// <summary>
+    /// Reads the current key status directly from the DB (bypasses UserManager cache).
+    /// We only need to know whether a hash exists — we never retrieve the hash itself.
+    /// </summary>
+    private async Task RefreshKeyStatusAsync()
+    {
+        if (_userId is null)
+        {
+            return;
+        }
+
+        // Check whether ApiKeyHash is non-null without loading the full user entity.
+        _hasKey = await DbContext.Users
+            .Where(u => u.Id == _userId && u.ApiKeyHash != null)
+            .AnyAsync();
+    }
+
+    private async Task GenerateKey()
+    {
+        ClearMessages();
+        _newRawKey = string.Empty;
+
+        if (_userId is null) { return; }
+
+        try
+        {
+            _newRawKey = await ApiKeyService.GenerateAsync(_userId);
+            _hasKey = true;
+            _statusMessage = "API key generated. Copy it now — it won't be shown again.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to generate key: {ex.Message}";
+        }
+    }
+
+    private async Task RevokeKey()
+    {
+        ClearMessages();
+        _newRawKey = string.Empty;
+
+        if (_userId is null) { return; }
+
+        try
+        {
+            await ApiKeyService.RevokeAsync(_userId);
+            _hasKey = false;
+            _statusMessage = "API key revoked.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to revoke key: {ex.Message}";
+        }
+    }
+
+    private void ClearMessages()
+    {
+        _statusMessage = string.Empty;
+        _errorMessage = string.Empty;
+    }
+}

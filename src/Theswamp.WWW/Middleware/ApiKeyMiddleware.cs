@@ -1,22 +1,24 @@
+using TheSwamp.WWW.Services;
+
 namespace TheSwamp.WWW.Middleware;
 
 /// <summary>
-/// Simple API key authentication middleware.
+/// API key authentication middleware.
 /// Checks requests under /api/ for a valid X-Api-Key header.
-/// The expected key is read from ApiSettings:ApiKey in configuration.
+///
+/// Keys are per-user and stored as SHA-256 hashes in the AspNetUsers table.
+/// Validation is handled by <see cref="IApiKeyService"/>, which checks an in-memory
+/// cache first and falls back to the database on a cache miss.
 /// </summary>
 public class ApiKeyMiddleware
 {
-	private const string API_KEY_HEADER = "X-Api-Key";
-	private const string CONFIG_KEY = "ApiSettings:ApiKey";
+	private const string ApiKeyHeader = "X-Api-Key";
 
 	private readonly RequestDelegate _next;
-	private readonly IConfiguration _configuration;
 
-	public ApiKeyMiddleware(RequestDelegate next, IConfiguration configuration)
+	public ApiKeyMiddleware(RequestDelegate next)
 	{
 		_next = next;
-		_configuration = configuration;
 	}
 
 	public async Task InvokeAsync(HttpContext context)
@@ -28,19 +30,21 @@ public class ApiKeyMiddleware
 			return;
 		}
 
-		var expectedKey = _configuration[CONFIG_KEY];
+		// Resolve IApiKeyService from the per-request service scope.
+		// IApiKeyService is scoped (it needs ApplicationDbContext), so we cannot
+		// inject it into the middleware constructor (which is effectively a singleton).
+		var apiKeyService = context.RequestServices.GetRequiredService<IApiKeyService>();
 
-		// If no key is configured, deny all API requests (fail-safe).
-		if (string.IsNullOrWhiteSpace(expectedKey))
+		if (!context.Request.Headers.TryGetValue(ApiKeyHeader, out var rawKey)
+			|| string.IsNullOrWhiteSpace(rawKey))
 		{
-			context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
-			await context.Response.WriteAsync("API key not configured.");
+			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+			await context.Response.WriteAsync("Unauthorized.");
 			return;
 		}
 
-		// Check the request header.
-		if (!context.Request.Headers.TryGetValue(API_KEY_HEADER, out var providedKey)
-			|| !string.Equals(providedKey, expectedKey, StringComparison.Ordinal))
+		var user = await apiKeyService.ValidateAsync(rawKey!);
+		if (user is null)
 		{
 			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 			await context.Response.WriteAsync("Unauthorized.");
@@ -50,3 +54,4 @@ public class ApiKeyMiddleware
 		await _next(context);
 	}
 }
+

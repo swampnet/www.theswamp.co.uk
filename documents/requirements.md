@@ -45,7 +45,7 @@ Api calls under an /api/ route
 [X] If user is admin, show a list of all connected users & their connection ids + ip address in the chat page.
 [ ] MFA setup
 [X] Rename: Theswamp -> TheSwamp
-[ ] Add ApiKey to user table, and use that for api authentication instead of the api-key in the config. Might want to consider caching the api keys in memory for performance, and invalidate the cache when api keys are updated.
-[ ] Add a page for users to manage their api key (generate new, revoke etc)
+[X] Add ApiKey to user table, and use that for api authentication instead of the api-key in the config. Might want to consider caching the api keys in memory for performance, and invalidate the cache when api keys are updated.
+[X] Add a page for users to manage their api key (generate new, revoke etc)
 [ ] Create test project and add some unit tests for the api endpoints and orchestration logic
 [ ] Add logging and error handling to the api endpoints

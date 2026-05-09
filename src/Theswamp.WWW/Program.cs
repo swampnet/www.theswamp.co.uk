@@ -91,6 +91,12 @@ builder.Services.AddScoped<IChatService, ChatService>();
 // ConnectionTracker is singleton — one shared registry across all hub instances.
 builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
 
+// ApiKeyCache is singleton — shared in-memory lookup table of hashed keys.
+builder.Services.AddSingleton<ApiKeyCache>();
+
+// ApiKeyService is scoped — uses UserManager which depends on ApplicationDbContext.
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+
 // ---------------------------------------------------------------------------
 // API controllers (for /api/* routes)
 // ---------------------------------------------------------------------------

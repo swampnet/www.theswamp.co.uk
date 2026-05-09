@@ -115,14 +115,18 @@ All message sends go through `IChatService.SendMessageAsync(string? userId, stri
 
 ### API
 
-- All `/api/*` routes require `X-Api-Key: <value>` header (configured in `ApiSettings:ApiKey`)
-- Missing or wrong key → 401; key not configured → 503 (fail-safe)
+- All `/api/*` routes require `X-Api-Key: <value>` header
+- Keys are **per-user**, stored as SHA-256 hashes in `AspNetUsers.ApiKeyHash` (never the raw key)
+- `ApiKeyCache` (singleton) — `ConcurrentDictionary<hash, userId>` for fast in-memory lookup; evicted on revoke/regenerate
+- `IApiKeyService` (scoped) — `GenerateAsync`, `RevokeAsync`, `ValidateAsync(rawKey)` — checks cache first, falls back to DB
+- Middleware resolves `IApiKeyService` from `context.RequestServices` (avoids scoped-in-singleton lifetime issue)
+- Users manage their key at `/account/api-key` (generate → raw key shown once; revoke)
 
 ### Secrets / config
 
 - `appsettings.json` is gitignored — never commit it
 - `appsettings.example.json` has placeholder values and IS committed
-- Keys to configure: `ConnectionStrings:DefaultConnection`, `ApiSettings:ApiKey`, `Authentication:Microsoft:*`, `Authentication:Google:*`, `Authentication:GitHub:*`
+- Keys to configure: `ConnectionStrings:DefaultConnection`, `Authentication:Microsoft:*`, `Authentication:Google:*`, `Authentication:GitHub:*`
 
 ### EF migrations — manual schema changes
 

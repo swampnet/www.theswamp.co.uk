@@ -44,14 +44,12 @@ public class MessagesController : ControllerBase
             return BadRequest("Message text cannot be empty.");
         }
 
-        var message = await _chatService.SendMessageAsync(request.UserId, request.Text);
+        var message = await _chatService.SendMessageAsync(null, request.Text);
         return Ok(message);
     }
 }
 
 /// <summary>
 /// Request body for POST /api/messages.
-/// Pass a valid Identity user ID in <see cref="UserId"/> for authenticated senders,
-/// or omit/null for anonymous messages.
 /// </summary>
-public record PostMessageRequest(string? UserId, string Text);
+public record PostMessageRequest(string Text);
