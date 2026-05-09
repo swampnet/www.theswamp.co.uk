@@ -1,0 +1,185 @@
+@page "/admin"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "admin")]
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+
+<PageTitle>Admin</PageTitle>
+
+<h2>Admin — User &amp; Role Management</h2>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <p style="color:green;">@_statusMessage</p>
+}
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <p style="color:red;">@_errorMessage</p>
+}
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Roles -->
+<!-- ------------------------------------------------------------------ -->
+<h3>Roles</h3>
+<ul>
+    @foreach (var role in _roles)
+    {
+        <li>@role.Name</li>
+    }
+</ul>
+
+<div style="display:flex; gap:8px; margin-bottom:16px;">
+    <input @bind="_newRoleName" placeholder="New role name" />
+    <button @onclick="CreateRole">Create Role</button>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Users -->
+<!-- ------------------------------------------------------------------ -->
+<h3>Users</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Roles</th>
+            <th>Assign Role</th>
+            <th>Remove Role</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var user in _users)
+        {
+            var userRoles = _userRoles.GetValueOrDefault(user.Id, new List<string>());
+            <tr>
+                <td>@user.Email</td>
+                <td>@string.Join(", ", userRoles)</td>
+                <td>
+                    <select @bind:get="_assignRoleSelections.GetValueOrDefault(user.Id, string.Empty)"
+                            @bind:set="val => _assignRoleSelections[user.Id] = val">
+                        <option value="">— select —</option>
+                        @foreach (var role in _roles)
+                        {
+                            <option value="@role.Name">@role.Name</option>
+                        }
+                    </select>
+                    <button @onclick="() => AssignRole(user)">Assign</button>
+                </td>
+                <td>
+                    <select @bind:get="_removeRoleSelections.GetValueOrDefault(user.Id, string.Empty)"
+                            @bind:set="val => _removeRoleSelections[user.Id] = val">
+                        <option value="">— select —</option>
+                        @foreach (var role in userRoles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                    <button @onclick="() => RemoveRole(user)">Remove</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<ApplicationUser> _users = new();
+    private List<IdentityRole> _roles = new();
+    private Dictionary<string, List<string>> _userRoles = new();
+    private Dictionary<string, string> _assignRoleSelections = new();
+    private Dictionary<string, string> _removeRoleSelections = new();
+    private string _newRoleName = string.Empty;
+    private string _statusMessage = string.Empty;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _users = UserManager.Users.ToList();
+        _roles = RoleManager.Roles.ToList();
+
+        _userRoles.Clear();
+        _assignRoleSelections.Clear();
+        _removeRoleSelections.Clear();
+
+        foreach (var user in _users)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            _userRoles[user.Id] = roles.ToList();
+            _assignRoleSelections[user.Id] = string.Empty;
+            _removeRoleSelections[user.Id] = string.Empty;
+        }
+    }
+
+    private async Task CreateRole()
+    {
+        ClearMessages();
+
+        if (string.IsNullOrWhiteSpace(_newRoleName))
+        {
+            _errorMessage = "Role name cannot be empty.";
+            return;
+        }
+
+        var result = await RoleManager.CreateAsync(new IdentityRole(_newRoleName.Trim()));
+        if (result.Succeeded)
+        {
+            _statusMessage = $"Role '{_newRoleName}' created.";
+            _newRoleName = string.Empty;
+            await LoadDataAsync();
+        }
+        else
+        {
+            _errorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    private async Task AssignRole(ApplicationUser user)
+    {
+        ClearMessages();
+
+        var roleName = _assignRoleSelections.GetValueOrDefault(user.Id);
+        if (string.IsNullOrEmpty(roleName)) { return; }
+
+        var result = await UserManager.AddToRoleAsync(user, roleName);
+        if (result.Succeeded)
+        {
+            _statusMessage = $"Role '{roleName}' assigned to {user.Email}.";
+            await LoadDataAsync();
+        }
+        else
+        {
+            _errorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    private async Task RemoveRole(ApplicationUser user)
+    {
+        ClearMessages();
+
+        var roleName = _removeRoleSelections.GetValueOrDefault(user.Id);
+        if (string.IsNullOrEmpty(roleName)) { return; }
+
+        var result = await UserManager.RemoveFromRoleAsync(user, roleName);
+        if (result.Succeeded)
+        {
+            _statusMessage = $"Role '{roleName}' removed from {user.Email}.";
+            await LoadDataAsync();
+        }
+        else
+        {
+            _errorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    private void ClearMessages()
+    {
+        _statusMessage = string.Empty;
+        _errorMessage = string.Empty;
+    }
+}
+
+@using Microsoft.AspNetCore.Identity
+@using Theswamp.WWW.Data

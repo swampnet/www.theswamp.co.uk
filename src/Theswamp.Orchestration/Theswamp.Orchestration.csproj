@@ -1,0 +1,15 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.3.0">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Theswamp.WWW\Theswamp.WWW.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>8f8ad771-14f7-4f76-b51a-81a1b85f7c5f</UserSecretsId>
+  </PropertyGroup>
+
+</Project>

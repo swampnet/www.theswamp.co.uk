@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Solution Items/documents/">
+    <File Path="documents/requirements.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Theswamp.Orchestration/Theswamp.Orchestration.csproj" />
+    <Project Path="src/Theswamp.WWW/Theswamp.WWW.csproj" />
+  </Folder>
+</Solution>

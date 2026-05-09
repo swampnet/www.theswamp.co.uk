@@ -1,0 +1,139 @@
+@page "/chat"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.SignalR.Client
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<PageTitle>Chat</PageTitle>
+
+<h2>Chat</h2>
+
+<div id="chat-messages" style="height:400px; overflow-y:auto; border:1px solid #ccc; padding:8px; margin-bottom:8px;">
+    @foreach (var msg in _messages)
+    {
+        <div>
+            <strong>@msg.UserName</strong>
+            <span style="color:#999; font-size:0.85em;">@msg.SentAt.ToLocalTime().ToString("HH:mm")</span>:
+            @msg.Text
+        </div>
+    }
+</div>
+
+<div style="display:flex; gap:8px;">
+    <input @bind="_messageText" @bind:event="oninput" @onkeydown="OnKeyDown"
+           placeholder="Type a message..." style="flex:1;" maxlength="500" />
+    <button @onclick="SendMessage" disabled="@(!CanSend)">Send</button>
+</div>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <p style="color:#666; font-style:italic; margin-top:4px;">@_statusMessage</p>
+}
+
+@code {
+    // Simple local message model for display (not the DB entity).
+    private record DisplayMessage(string UserName, string Text, DateTime SentAt);
+
+    private readonly List<DisplayMessage> _messages = new();
+    private HubConnection? _hubConnection;
+    private string _messageText = string.Empty;
+    private string _statusMessage = string.Empty;
+    private string _userName = "Anon";
+    private bool CanSend => _hubConnection?.State == HubConnectionState.Connected
+                            && !string.IsNullOrWhiteSpace(_messageText);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Determine the display name from the auth state.
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            _userName = user.Identity.Name ?? "Anon";
+        }
+
+        // Only initialize SignalR when running interactively, not during prerendering
+        if (!RendererInfo.IsInteractive)
+        {
+            return;
+        }
+
+        // Load recent messages from the API.
+        await LoadRecentMessagesAsync();
+
+        // Connect to the SignalR hub using an absolute URI — HubConnectionBuilder requires one.
+        // NavigationManager.ToAbsoluteUri resolves the correct scheme, host and port automatically.
+        var hubUrl = NavigationManager.ToAbsoluteUri($"/hubs/chat?userName={Uri.EscapeDataString(_userName)}");
+
+        _hubConnection = new HubConnectionBuilder()
+            .WithUrl(hubUrl)
+            .WithAutomaticReconnect()
+            .Build();
+
+        // Handle incoming chat messages.
+        _hubConnection.On<string, string, string>("ReceiveMessage", (userName, text, sentAtStr) =>
+        {
+            var sentAt = DateTime.TryParse(sentAtStr, out var dt) ? dt : DateTime.UtcNow;
+            _messages.Add(new DisplayMessage(userName, text, sentAt));
+            InvokeAsync(StateHasChanged);
+        });
+
+        // Handle user-connected announcements.
+        _hubConnection.On<string>("UserConnected", (userName) =>
+        {
+            _messages.Add(new DisplayMessage("System", $"** {userName} connected **", DateTime.UtcNow));
+            InvokeAsync(StateHasChanged);
+        });
+
+        // Handle user-disconnected announcements.
+        _hubConnection.On<string>("UserDisconnected", (userName) =>
+        {
+            _messages.Add(new DisplayMessage("System", $"** {userName} disconnected **", DateTime.UtcNow));
+            InvokeAsync(StateHasChanged);
+        });
+
+        await _hubConnection.StartAsync();
+    }
+
+    /// <summary>Loads recent messages from the REST API on page load.</summary>
+    private async Task LoadRecentMessagesAsync()
+    {
+        // We call the API directly from the server side (no browser involved),
+        // so we can use a simple HttpClient with the configured API key.
+        // For a Blazor Server component, HttpClient is injected via DI.
+        // (See Program.cs — we'd need to register a named client with the key.)
+        // For now, messages will just appear via SignalR once the connection is open.
+        // TODO: wire up a typed HttpClient with the API key for history loading.
+        _statusMessage = string.Empty;
+        await Task.CompletedTask;
+    }
+
+    private async Task SendMessage()
+    {
+        if (!CanSend) { return; }
+
+        var text = _messageText.Trim();
+        _messageText = string.Empty;
+
+        // Send via SignalR hub directly — the hub will broadcast to all clients.
+        // The message is also persisted via POST /api/messages (for history).
+        await _hubConnection!.SendAsync("SendMessage", _userName, text);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendMessage();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            await _hubConnection.DisposeAsync();
+        }
+    }
+}
