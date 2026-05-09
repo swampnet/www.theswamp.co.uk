@@ -54,4 +54,5 @@ Api calls under an /api/ route
 [ ] Duplicate current www.theswamp.co.uk home page
 [ ] Add wine search
 [ ] Add wine review AI
-[ ] Consolidate Account/Manage, Test, Profile and Api-Key pages under a single page - Use Account/Manage as the base if it makes it simpler    
+[X] Consolidate Account/Manage, Test, Profile and Api-Key pages under a single page
+[ ] Add dark mode. Use system default but also allow user to toggle and save preference in local storage

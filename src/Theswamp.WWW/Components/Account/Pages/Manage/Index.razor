@@ -1,91 +1,288 @@
 @page "/Account/Manage"
+@rendermode InteractiveServer
 
-@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using TheSwamp.WWW.Data
+@using TheSwamp.WWW.Services
 
+@inject AuthenticationStateProvider AuthStateProvider
 @inject UserManager<ApplicationUser> UserManager
-@inject SignInManager<ApplicationUser> SignInManager
-@inject IdentityRedirectManager RedirectManager
+@inject IApiKeyService ApiKeyService
+@inject ApplicationDbContext DbContext
 
-<PageTitle>Profile</PageTitle>
+<PageTitle>My Account</PageTitle>
 
-<h3>Profile</h3>
-<StatusMessage />
+<h3>My Account</h3>
 
-<div class="row">
-    <div class="col-xl-6">
-        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
-            <DataAnnotationsValidator />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <input type="text" value="@username" id="username" class="form-control" placeholder="Choose your username." disabled />
-                <label for="username" class="form-label">Username</label>
-            </div>
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.PhoneNumber" id="Input.PhoneNumber" class="form-control" placeholder="Enter your phone number" />
-                <label for="Input.PhoneNumber" class="form-label">Phone number</label>
-                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
-        </EditForm>
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <p style="color:green; margin-bottom:16px;">@_statusMessage</p>
+}
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <p style="color:red; margin-bottom:16px;">@_errorMessage</p>
+}
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Display name                                                         -->
+<!-- ------------------------------------------------------------------ -->
+<h4>Display name</h4>
+<div style="max-width:400px; margin-bottom:24px;">
+    <div style="display:flex; gap:8px;">
+        <input @bind="_displayName" maxlength="100"
+               placeholder="Leave blank to use account username"
+               style="flex:1;" />
+        <button @onclick="SaveDisplayNameAsync">Save</button>
+    </div>
+    <p style="color:#666; font-size:0.85em; margin-top:4px;">
+        Shown in chat. Leave blank to fall back to your account username.
+    </p>
+</div>
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Phone number                                                         -->
+<!-- ------------------------------------------------------------------ -->
+<h4>Phone number</h4>
+<div style="max-width:400px; margin-bottom:24px;">
+    <div style="display:flex; gap:8px;">
+        <input @bind="_phoneNumber" type="tel" maxlength="50"
+               placeholder="Phone number (optional)"
+               style="flex:1;" />
+        <button @onclick="SavePhoneNumberAsync">Save</button>
     </div>
 </div>
 
+<!-- ------------------------------------------------------------------ -->
+<!-- API Key                                                              -->
+<!-- ------------------------------------------------------------------ -->
+<h4>API Key</h4>
+<p style="color:#666; font-size:0.85em;">
+    Used to authenticate calls to <code>/api/*</code> endpoints via the <code>X-Api-Key</code> header.
+</p>
+
+@if (!string.IsNullOrEmpty(_newRawKey))
+{
+    <div style="background:#fffbe6; border:1px solid #ffe58f; padding:12px; margin-bottom:12px; border-radius:4px;">
+        <strong>⚠ Copy your API key now — it will not be shown again.</strong>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+            <input type="text" readonly value="@_newRawKey" style="flex:1; font-family:monospace;" onclick="this.select()" />
+        </div>
+    </div>
+}
+
+@if (_hasApiKey)
+{
+    <p>✅ Active API key on record.</p>
+    <div style="display:flex; gap:8px; margin-bottom:24px;">
+        <button @onclick="GenerateApiKeyAsync">Regenerate Key</button>
+        <button @onclick="RevokeApiKeyAsync" style="color:red;">Revoke Key</button>
+    </div>
+}
+else
+{
+    <p>No active API key.</p>
+    <div style="margin-bottom:24px;">
+        <button @onclick="GenerateApiKeyAsync">Generate Key</button>
+    </div>
+}
+
+<!-- ------------------------------------------------------------------ -->
+<!-- Claims & Roles (read-only)                                          -->
+<!-- ------------------------------------------------------------------ -->
+<h4>Claims &amp; Roles</h4>
+
+@if (_claims.Count > 0)
+{
+    <table style="font-size:0.85em; margin-bottom:8px;">
+        <thead>
+            <tr><th style="padding:2px 12px 2px 0;">Type</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+            @foreach (var claim in _claims)
+            {
+                <tr>
+                    <td style="padding:2px 12px 2px 0; font-family:monospace; color:#666;">@claim.Type</td>
+                    <td>@claim.Value</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <strong>Roles:</strong>
+    @if (_roles.Count > 0)
+    {
+        <ul style="margin-top:4px;">
+            @foreach (var role in _roles)
+            {
+                <li>@role</li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p style="color:#666; font-size:0.85em;">No roles assigned.</p>
+    }
+}
+
 @code {
-    private ApplicationUser? user;
-    private string? username;
-    private string? phoneNumber;
+    private string? _userId;
 
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    // Display name
+    private string _displayName = string.Empty;
 
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = default!;
+    // Phone number
+    private string _phoneNumber = string.Empty;
+
+    // API key
+    private bool _hasApiKey;
+    private string _newRawKey = string.Empty;
+
+    // Claims/roles
+    private List<(string Type, string Value)> _claims = new();
+    private List<string> _roles = new();
+
+    // Shared status
+    private string _statusMessage = string.Empty;
+    private string _errorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
-        Input ??= new();
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var principal = authState.User;
 
-        user = await UserManager.GetUserAsync(HttpContext.User);
-        if (user is null)
+        _userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (_userId is null) { return; }
+
+        var user = await UserManager.FindByIdAsync(_userId);
+        if (user is null) { return; }
+
+        _displayName = user.DisplayName ?? string.Empty;
+        _phoneNumber = user.PhoneNumber ?? string.Empty;
+
+        _hasApiKey = await DbContext.Users
+            .Where(u => u.Id == _userId && u.ApiKeyHash != null)
+            .AnyAsync();
+
+        // Claims
+        foreach (var claim in principal.Claims)
         {
-            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
-            return;
+            _claims.Add((claim.Type, claim.Value));
         }
 
-        username = await UserManager.GetUserNameAsync(user);
-        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
-
-        Input.PhoneNumber ??= phoneNumber;
+        _roles = principal.Claims
+            .Where(c => c.Type == ClaimTypes.Role || c.Type == "role")
+            .Select(c => c.Value)
+            .ToList();
     }
 
-    private async Task OnValidSubmitAsync()
+    // ------------------------------------------------------------------ //
+    // Display name                                                         //
+    // ------------------------------------------------------------------ //
+
+    private async Task SaveDisplayNameAsync()
     {
-        if (user is null)
-        {
-            RedirectManager.RedirectToInvalidUser(UserManager, HttpContext);
-            return;
-        }
+        ClearMessages();
 
-        if (Input.PhoneNumber != phoneNumber)
-        {
-            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
-            if (!setPhoneResult.Succeeded)
-            {
-                RedirectManager.RedirectToCurrentPageWithStatus("Error: Failed to set phone number.", HttpContext);
-                return;
-            }
-        }
+        if (_userId is null) { return; }
 
-        await SignInManager.RefreshSignInAsync(user);
-        RedirectManager.RedirectToCurrentPageWithStatus("Your profile has been updated", HttpContext);
+        var user = await UserManager.FindByIdAsync(_userId);
+        if (user is null) { _errorMessage = "User not found."; return; }
+
+        user.DisplayName = string.IsNullOrWhiteSpace(_displayName) ? null : _displayName.Trim();
+
+        var result = await UserManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            _displayName = user.DisplayName ?? string.Empty;
+            _statusMessage = "Display name saved.";
+        }
+        else
+        {
+            _errorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
     }
 
-    private sealed class InputModel
+    // ------------------------------------------------------------------ //
+    // Phone number                                                         //
+    // ------------------------------------------------------------------ //
+
+    private async Task SavePhoneNumberAsync()
     {
-        [Phone]
-        [Display(Name = "Phone number")]
-        public string? PhoneNumber { get; set; }
+        ClearMessages();
+
+        if (_userId is null) { return; }
+
+        var user = await UserManager.FindByIdAsync(_userId);
+        if (user is null) { _errorMessage = "User not found."; return; }
+
+        var result = await UserManager.SetPhoneNumberAsync(
+            user,
+            string.IsNullOrWhiteSpace(_phoneNumber) ? null : _phoneNumber.Trim());
+
+        if (result.Succeeded)
+        {
+            _phoneNumber = user.PhoneNumber ?? string.Empty;
+            _statusMessage = "Phone number saved.";
+        }
+        else
+        {
+            _errorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    // API key                                                              //
+    // ------------------------------------------------------------------ //
+
+    private async Task GenerateApiKeyAsync()
+    {
+        ClearMessages();
+        _newRawKey = string.Empty;
+
+        if (_userId is null) { return; }
+
+        try
+        {
+            _newRawKey = await ApiKeyService.GenerateAsync(_userId);
+            _hasApiKey = true;
+            _statusMessage = "API key generated. Copy it now — it won't be shown again.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to generate key: {ex.Message}";
+        }
+    }
+
+    private async Task RevokeApiKeyAsync()
+    {
+        ClearMessages();
+        _newRawKey = string.Empty;
+
+        if (_userId is null) { return; }
+
+        try
+        {
+            await ApiKeyService.RevokeAsync(_userId);
+            _hasApiKey = false;
+            _statusMessage = "API key revoked.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to revoke key: {ex.Message}";
+        }
+    }
+
+    // ------------------------------------------------------------------ //
+    // Helpers                                                              //
+    // ------------------------------------------------------------------ //
+
+    private void ClearMessages()
+    {
+        _statusMessage = string.Empty;
+        _errorMessage = string.Empty;
     }
 }
+

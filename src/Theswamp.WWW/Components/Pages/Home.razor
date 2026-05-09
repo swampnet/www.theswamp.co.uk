@@ -7,6 +7,11 @@
 
 <ul>
     <li><a href="/chat">Chat</a></li>
-    <li><a href="/test">Test (requires login)</a></li>
-    <li><a href="/admin">Admin (requires admin role)</a></li>
+
+    <AuthorizeView Roles="admin">
+        <Authorized>
+            <li><a href="/admin">Admin</a></li>
+        </Authorized>
+    </AuthorizeView>
+
 </ul>
