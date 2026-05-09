@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 using TheSwamp.WWW.Components;
 using TheSwamp.WWW.Components.Account;
 using TheSwamp.WWW.Data;
@@ -103,6 +104,43 @@ builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddControllers();
 
 // ---------------------------------------------------------------------------
+// Swagger / OpenAPI — spec generation + UI (dev only, served at /swagger)
+// ---------------------------------------------------------------------------
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "TheSwamp API",
+        Version = "v1",
+        Description = "API endpoints for TheSwamp. All requests require an `X-Api-Key` header."
+    });
+
+    // Declare the API key security scheme.
+    options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Name = "X-Api-Key",
+        Description = "Your personal API key. Generate one from your Account page."
+    });
+
+    // Apply the API key requirement globally — v10 uses a delegate so the scheme reference
+    // can be resolved against the document being generated.
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("ApiKey", document)] = []
+    });
+
+    // Only include routes under /api/
+    options.DocInclusionPredicate((_, api) =>
+        api.RelativePath?.StartsWith("api/", StringComparison.OrdinalIgnoreCase) == true);
+
+    // Include XML doc comments from controller <summary> tags.
+    options.IncludeXmlComments(System.Reflection.Assembly.GetExecutingAssembly());
+});
+
+// ---------------------------------------------------------------------------
 // Build the app
 // ---------------------------------------------------------------------------
 var app = builder.Build();
@@ -133,6 +171,14 @@ else
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+
+// Swagger UI at /swagger — spec at /swagger/v1/swagger.json
+app.UseSwagger();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "TheSwamp API v1");
+    options.RoutePrefix = "swagger";
+});
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
