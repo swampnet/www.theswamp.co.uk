@@ -38,8 +38,8 @@ public class ChatService : IChatService
 
         var user = await _userManager.FindByIdAsync(userId);
 
-        // Prefer UserName, fall back to Email, then "Anon" if the ID doesn't resolve.
-        return user?.UserName ?? user?.Email ?? "Anon";
+        // Prefer DisplayName (user-chosen), then UserName, then Email, then Anon.
+        return user?.DisplayName ?? user?.UserName ?? user?.Email ?? "Anon";
     }
 
     /// <inheritdoc />

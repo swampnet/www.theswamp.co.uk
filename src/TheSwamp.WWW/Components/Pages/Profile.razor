@@ -1,0 +1,86 @@
+@page "/account/profile"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using System.Security.Claims
+@inject AuthenticationStateProvider AuthStateProvider
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>Profile</PageTitle>
+
+<h2>Profile</h2>
+
+@if (!string.IsNullOrEmpty(_statusMessage))
+{
+    <p style="color:green;">@_statusMessage</p>
+}
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <p style="color:red;">@_errorMessage</p>
+}
+
+<div style="max-width:400px;">
+    <label for="displayName">Display name</label>
+    <div style="display:flex; gap:8px; margin-top:4px;">
+        <input id="displayName" @bind="_displayName" maxlength="100" placeholder="Leave blank to use account name" style="flex:1;" />
+        <button @onclick="SaveAsync">Save</button>
+    </div>
+    <p style="color:#666; font-size:0.85em; margin-top:4px;">
+        This name is shown in chat. Leave blank to use your account username instead.
+    </p>
+</div>
+
+@code {
+    private string? _userId;
+    private string _displayName = string.Empty;
+    private string _statusMessage = string.Empty;
+    private string _errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (_userId is not null)
+        {
+            var user = await UserManager.FindByIdAsync(_userId);
+            _displayName = user?.DisplayName ?? string.Empty;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        ClearMessages();
+
+        if (_userId is null) { return; }
+
+        var user = await UserManager.FindByIdAsync(_userId);
+        if (user is null)
+        {
+            _errorMessage = "User not found.";
+            return;
+        }
+
+        // Store null when the field is blank so the fallback logic in ChatService kicks in.
+        user.DisplayName = string.IsNullOrWhiteSpace(_displayName) ? null : _displayName.Trim();
+
+        var result = await UserManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            _statusMessage = "Display name saved.";
+            _displayName = user.DisplayName ?? string.Empty;
+        }
+        else
+        {
+            _errorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
+        }
+    }
+
+    private void ClearMessages()
+    {
+        _statusMessage = string.Empty;
+        _errorMessage = string.Empty;
+    }
+}
+
+@using Microsoft.AspNetCore.Identity
+@using TheSwamp.WWW.Data
