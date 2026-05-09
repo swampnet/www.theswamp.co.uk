@@ -44,4 +44,4 @@ Api calls under an /api/ route
     This is more secure and prevents impersonation.
 [ ] If user is admin, show a list of all connected users & their connection ids + ip address in the chat page.
 [ ] MFA setup
-[ ]
+[ ] Rename: Theswamp -> TheSwamp

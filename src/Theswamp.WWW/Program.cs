@@ -83,6 +83,12 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddSignalR();
 
 // ---------------------------------------------------------------------------
+// Application services
+// ---------------------------------------------------------------------------
+// ChatService is scoped to match ApplicationDbContext's lifetime.
+builder.Services.AddScoped<IChatService, ChatService>();
+
+// ---------------------------------------------------------------------------
 // API controllers (for /api/* routes)
 // ---------------------------------------------------------------------------
 builder.Services.AddControllers();

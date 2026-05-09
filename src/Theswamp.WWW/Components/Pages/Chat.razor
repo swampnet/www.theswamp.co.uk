@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
+@inject Theswamp.WWW.Services.IChatService ChatService
 @implements IAsyncDisposable
 
 <PageTitle>Chat</PageTitle>
@@ -40,6 +41,8 @@
     private string _messageText = string.Empty;
     private string _statusMessage = string.Empty;
     private string _userName = "Anon";
+
+    // Can send once the hub connection is open and there is text to send.
     private bool CanSend => _hubConnection?.State == HubConnectionState.Connected
                             && !string.IsNullOrWhiteSpace(_messageText);
 
@@ -53,17 +56,18 @@
             _userName = user.Identity.Name ?? "Anon";
         }
 
-        // Only initialize SignalR when running interactively, not during prerendering
+        // Skip SignalR setup during server-side pre-render; it runs again interactively.
         if (!RendererInfo.IsInteractive)
         {
             return;
         }
 
-        // Load recent messages from the API.
+        // Load recent message history directly via the service (no HTTP round-trip needed
+        // because this component runs on the server and can call the service directly).
         await LoadRecentMessagesAsync();
 
-        // Connect to the SignalR hub using an absolute URI — HubConnectionBuilder requires one.
-        // NavigationManager.ToAbsoluteUri resolves the correct scheme, host and port automatically.
+        // Connect to the SignalR hub using an absolute URI (required by HubConnectionBuilder).
+        // The hub connection is used only for RECEIVING messages — sends go via IChatService.
         var hubUrl = NavigationManager.ToAbsoluteUri($"/hubs/chat?userName={Uri.EscapeDataString(_userName)}");
 
         _hubConnection = new HubConnectionBuilder()
@@ -71,7 +75,7 @@
             .WithAutomaticReconnect()
             .Build();
 
-        // Handle incoming chat messages.
+        // Handle incoming chat messages broadcast from any sender (API, hub, other pages).
         _hubConnection.On<string, string, string>("ReceiveMessage", (userName, text, sentAtStr) =>
         {
             var sentAt = DateTime.TryParse(sentAtStr, out var dt) ? dt : DateTime.UtcNow;
@@ -96,19 +100,23 @@
         await _hubConnection.StartAsync();
     }
 
-    /// <summary>Loads recent messages from the REST API on page load.</summary>
+    /// <summary>
+    /// Loads recent message history from the database via the chat service and
+    /// pre-populates the message list so the user can see prior conversation on arrival.
+    /// </summary>
     private async Task LoadRecentMessagesAsync()
     {
-        // We call the API directly from the server side (no browser involved),
-        // so we can use a simple HttpClient with the configured API key.
-        // For a Blazor Server component, HttpClient is injected via DI.
-        // (See Program.cs — we'd need to register a named client with the key.)
-        // For now, messages will just appear via SignalR once the connection is open.
-        // TODO: wire up a typed HttpClient with the API key for history loading.
-        _statusMessage = string.Empty;
-        await Task.CompletedTask;
+        var recent = await ChatService.GetRecentMessagesAsync(50);
+        foreach (var m in recent)
+        {
+            _messages.Add(new DisplayMessage(m.UserName, m.Text, m.SentOnUtc));
+        }
     }
 
+    /// <summary>
+    /// Sends the current message via IChatService, which persists it to the database
+    /// and broadcasts it to all connected SignalR clients (including this one).
+    /// </summary>
     private async Task SendMessage()
     {
         if (!CanSend) { return; }
@@ -116,9 +124,10 @@
         var text = _messageText.Trim();
         _messageText = string.Empty;
 
-        // Send via SignalR hub directly — the hub will broadcast to all clients.
-        // The message is also persisted via POST /api/messages (for history).
-        await _hubConnection!.SendAsync("SendMessage", _userName, text);
+        // Service handles DB persistence + SignalR broadcast.
+        // The broadcast will trigger our own "ReceiveMessage" handler above,
+        // which appends the message to the list — no need to add it manually here.
+        await ChatService.SendMessageAsync(_userName, text);
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)
