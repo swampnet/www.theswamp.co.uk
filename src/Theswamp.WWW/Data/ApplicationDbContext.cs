@@ -10,17 +10,18 @@ namespace Theswamp.WWW.Data;
 /// Extends IdentityDbContext with full role support (IdentityRole).
 /// </summary>
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-	: IdentityDbContext<ApplicationUser, IdentityRole, string>(options)
+    : IdentityDbContext<ApplicationUser, IdentityRole, string>(options)
 {
-	/// <summary>Chat messages stored for the recent message history.</summary>
-	public DbSet<ChatMessage> ChatMessages { get; set; }
+    /// <summary>Chat messages stored for the recent message history.</summary>
+    public DbSet<ChatMessage> ChatMessages { get; set; }
 
-	protected override void OnModelCreating(ModelBuilder builder)
-	{
-		base.OnModelCreating(builder);
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
 
-		// Index on SentAt so we can efficiently query recent messages.
-		builder.Entity<ChatMessage>()
-			.HasIndex(m => m.SentAt);
-	}
+        // Index on SentAt so we can efficiently query recent messages.
+        builder.Entity<ChatMessage>()
+            .ToTable("ChatMessage")
+            .HasIndex(m => m.SentOnUtc);
+    }
 }

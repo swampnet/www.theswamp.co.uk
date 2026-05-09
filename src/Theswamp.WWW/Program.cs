@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Razor components + Interactive Server rendering (Blazor Server mode)
 // ---------------------------------------------------------------------------
 builder.Services.AddRazorComponents()
-	.AddInteractiveServerComponents();
+    .AddInteractiveServerComponents();
 
 // ---------------------------------------------------------------------------
 // Authentication — Identity + OIDC providers
@@ -24,41 +24,41 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 builder.Services.AddAuthentication(options =>
-	{
-		options.DefaultScheme = IdentityConstants.ApplicationScheme;
-		options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-	})
-	.AddIdentityCookies();
+    {
+        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    })
+    .AddIdentityCookies();
 
 // External OIDC providers — must be chained from AddAuthentication() separately.
 builder.Services.AddAuthentication()
-	// Microsoft Entra ID (Azure AD) — register an app at portal.azure.com
-	.AddMicrosoftAccount(options =>
-	{
-		options.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"]!;
-		options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"]!;
-	})
-	// Google — register at console.cloud.google.com
-	.AddGoogle(options =>
-	{
-		options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
-		options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
-	})
-	// GitHub — register at github.com/settings/developers
-	.AddGitHub(options =>
-	{
-		options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"]!;
-		options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"]!;
-	});
+    // Microsoft Entra ID (Azure AD) — register an app at portal.azure.com
+    .AddMicrosoftAccount(options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"]!;
+    })
+    // Google — register at console.cloud.google.com
+    .AddGoogle(options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+    })
+    // GitHub — register at github.com/settings/developers
+    .AddGitHub(options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:GitHub:ClientId"]!;
+        options.ClientSecret = builder.Configuration["Authentication:GitHub:ClientSecret"]!;
+    });
 
 // ---------------------------------------------------------------------------
 // Database — SQL Server (LocalDB in development)
 // ---------------------------------------------------------------------------
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-	?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-	options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -66,14 +66,14 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 // Identity — with full Role support
 // ---------------------------------------------------------------------------
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
-	{
-		options.SignIn.RequireConfirmedAccount = true;
-		options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
-	})
-	.AddRoles<IdentityRole>()  // enables role management
-	.AddEntityFrameworkStores<ApplicationDbContext>()
-	.AddSignInManager()
-	.AddDefaultTokenProviders();
+    {
+        options.SignIn.RequireConfirmedAccount = true;
+        options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
+    })
+    .AddRoles<IdentityRole>()  // enables role management
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -97,13 +97,13 @@ var app = builder.Build();
 // ---------------------------------------------------------------------------
 using (var scope = app.Services.CreateScope())
 {
-	var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-	// Apply any pending EF Core migrations automatically on startup.
-	// In production you may prefer to run migrations as a deployment step instead.
-	await db.Database.MigrateAsync();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    // Apply any pending EF Core migrations automatically on startup.
+    // In production you may prefer to run migrations as a deployment step instead.
+    //await db.Database.MigrateAsync();
 
-	var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-	await RoleSeeder.SeedRolesAsync(roleManager);
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    await RoleSeeder.SeedRolesAsync(roleManager);
 }
 
 // ---------------------------------------------------------------------------
@@ -111,12 +111,12 @@ using (var scope = app.Services.CreateScope())
 // ---------------------------------------------------------------------------
 if (app.Environment.IsDevelopment())
 {
-	app.UseMigrationsEndPoint();
+    app.UseMigrationsEndPoint();
 }
 else
 {
-	app.UseExceptionHandler("/Error", createScopeForErrors: true);
-	app.UseHsts();
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
 }
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
@@ -136,7 +136,7 @@ app.MapControllers();
 
 // Blazor components
 app.MapRazorComponents<App>()
-	.AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode();
 
 // Identity endpoints (Account pages)
 app.MapAdditionalIdentityEndpoints();
