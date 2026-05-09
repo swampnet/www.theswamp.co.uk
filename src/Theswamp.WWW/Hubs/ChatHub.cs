@@ -8,57 +8,56 @@ namespace TheSwamp.WWW.Hubs;
 /// Clients connect to /hubs/chat.
 ///
 /// Client-side events emitted:
-///   - "ReceiveMessage"    (userName: string, text: string, sentAt: string)
-///   - "UserConnected"     (userName: string)
-///   - "UserDisconnected"  (userName: string)
+///   - "ReceiveMessage"    (displayName: string, text: string, sentAt: string)
+///   - "UserConnected"     (displayName: string)
+///   - "UserDisconnected"  (displayName: string)
+///
+/// For authenticated users, the display name is resolved server-side from the user ID.
+/// Anonymous clients pass ?userId= (empty) in the query string and display as "Anon".
 /// </summary>
 public class ChatHub : Hub
 {
-private readonly IChatService _chatService;
+    private readonly IChatService _chatService;
 
-public ChatHub(IChatService chatService)
-{
-_chatService = chatService;
-}
+    public ChatHub(IChatService chatService)
+    {
+        _chatService = chatService;
+    }
 
-/// <summary>
-/// Invoked by a JS client to send a message.
-/// Routes through <see cref="IChatService"/> so the message is persisted to the
-/// database and broadcast to all clients via a single consistent code path.
-/// </summary>
-/// <param name="userName">Display name of the sender.</param>
-/// <param name="text">Message text.</param>
-public async Task SendMessage(string userName, string text)
-{
-// Service handles DB save + SignalR broadcast.
-await _chatService.SendMessageAsync(userName, text);
-}
+    /// <summary>
+    /// Invoked by a JS client to send a message.
+    /// Routes through <see cref="IChatService"/> so the message is persisted to the
+    /// database and broadcast to all clients via a single consistent code path.
+    /// </summary>
+    /// <param name="userId">Identity user ID of the sender. Null/empty for anonymous.</param>
+    /// <param name="text">Message text.</param>
+    public async Task SendMessage(string? userId, string text)
+    {
+        await _chatService.SendMessageAsync(userId, text);
+    }
 
-/// <summary>Announces to all clients that a user has connected.</summary>
-public override async Task OnConnectedAsync()
-{
-// The display name is passed as a query string parameter (?userName=...)
-// so anonymous users can still connect without being authenticated.
-var userName = Context.GetHttpContext()?.Request.Query["userName"].ToString();
-if (string.IsNullOrWhiteSpace(userName))
-{
-userName = "Anon";
-}
+    /// <summary>Announces to all clients that a user has connected.</summary>
+    public override async Task OnConnectedAsync()
+    {
+        // For authenticated users, Context.UserIdentifier is populated from the
+        // NameIdentifier claim automatically by SignalR. For anonymous connections,
+        // callers pass ?userId= in the query string (will be null/empty -> "Anon").
+        var userId = Context.UserIdentifier
+            ?? Context.GetHttpContext()?.Request.Query["userId"].ToString();
 
-await Clients.All.SendAsync("UserConnected", userName);
-await base.OnConnectedAsync();
-}
+        var displayName = await _chatService.GetDisplayNameAsync(userId);
+        await Clients.All.SendAsync("UserConnected", displayName);
+        await base.OnConnectedAsync();
+    }
 
-/// <summary>Announces to all clients that a user has disconnected.</summary>
-public override async Task OnDisconnectedAsync(Exception? exception)
-{
-var userName = Context.GetHttpContext()?.Request.Query["userName"].ToString();
-if (string.IsNullOrWhiteSpace(userName))
-{
-userName = "Anon";
-}
+    /// <summary>Announces to all clients that a user has disconnected.</summary>
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        var userId = Context.UserIdentifier
+            ?? Context.GetHttpContext()?.Request.Query["userId"].ToString();
 
-await Clients.Others.SendAsync("UserDisconnected", userName);
-await base.OnDisconnectedAsync(exception);
-}
+        var displayName = await _chatService.GetDisplayNameAsync(userId);
+        await Clients.Others.SendAsync("UserDisconnected", displayName);
+        await base.OnDisconnectedAsync(exception);
+    }
 }

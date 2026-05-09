@@ -14,39 +14,44 @@ namespace TheSwamp.WWW.Api;
 [Route("api/[controller]")]
 public class MessagesController : ControllerBase
 {
-private readonly IChatService _chatService;
+    private readonly IChatService _chatService;
 
-public MessagesController(IChatService chatService)
-{
-_chatService = chatService;
+    public MessagesController(IChatService chatService)
+    {
+        _chatService = chatService;
+    }
+
+    /// <summary>
+    /// GET /api/messages
+    /// Returns the most recent chat messages (up to 50), oldest first.
+    /// Display names are resolved from user IDs by the service.
+    /// </summary>
+    [HttpGet]
+    public async Task<IEnumerable<ChatMessageDto>> GetMessages()
+    {
+        return await _chatService.GetRecentMessagesAsync(50);
+    }
+
+    /// <summary>
+    /// POST /api/messages
+    /// Saves a new chat message and broadcasts it to all SignalR clients.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> PostMessage([FromBody] PostMessageRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Text))
+        {
+            return BadRequest("Message text cannot be empty.");
+        }
+
+        var message = await _chatService.SendMessageAsync(request.UserId, request.Text);
+        return Ok(message);
+    }
 }
 
 /// <summary>
-/// GET /api/messages
-/// Returns the most recent chat messages (up to 50), oldest first.
+/// Request body for POST /api/messages.
+/// Pass a valid Identity user ID in <see cref="UserId"/> for authenticated senders,
+/// or omit/null for anonymous messages.
 /// </summary>
-[HttpGet]
-public async Task<IEnumerable<ChatMessage>> GetMessages()
-{
-return await _chatService.GetRecentMessagesAsync(50);
-}
-
-/// <summary>
-/// POST /api/messages
-/// Saves a new chat message and broadcasts it to all SignalR clients.
-/// </summary>
-[HttpPost]
-public async Task<IActionResult> PostMessage([FromBody] PostMessageRequest request)
-{
-if (string.IsNullOrWhiteSpace(request.Text))
-{
-return BadRequest("Message text cannot be empty.");
-}
-
-var message = await _chatService.SendMessageAsync(request.UserName, request.Text);
-return Ok(message);
-}
-}
-
-/// <summary>Request body for POST /api/messages.</summary>
-public record PostMessageRequest(string? UserName, string Text);
+public record PostMessageRequest(string? UserId, string Text);

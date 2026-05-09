@@ -10,10 +10,13 @@ public class ChatMessage
     [Key]
     public long Id { get; set; }
 
-    /// <summary>Display name of the sender. "Anon" for unauthenticated users.</summary>
-    [Required]
-    [MaxLength(100)]
-    public string UserName { get; set; } = "Anon";
+    /// <summary>
+    /// Identity ID of the sender (FK to AspNetUsers.Id). Null for anonymous messages.
+    /// Display name resolution is done at query time via UserManager — we never store
+    /// a username here because it can change without the message table knowing.
+    /// </summary>
+    [MaxLength(450)] // matches AspNetUsers.Id column length
+    public string? UserId { get; set; }
 
     /// <summary>The message text.</summary>
     [Required]
@@ -21,6 +24,5 @@ public class ChatMessage
     public string Text { get; set; } = string.Empty;
 
     /// <summary>UTC timestamp of when the message was sent.</summary>
-    //public DateTime SentAt { get; set; } = DateTime.UtcNow;
     public DateTime SentOnUtc { get; set; } = DateTime.UtcNow;
 }

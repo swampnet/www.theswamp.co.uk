@@ -1,6 +1,7 @@
 @page "/chat"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Security.Claims
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavigationManager
 @inject TheSwamp.WWW.Services.IChatService ChatService
@@ -14,7 +15,7 @@
     @foreach (var msg in _messages)
     {
         <div>
-            <strong>@msg.UserName</strong>
+            <strong>@msg.DisplayName</strong>
             <span style="color:#999; font-size:0.85em;">@msg.SentAt.ToLocalTime().ToString("HH:mm")</span>:
             @msg.Text
         </div>
@@ -33,14 +34,19 @@
 }
 
 @code {
-    // Simple local message model for display (not the DB entity).
-    private record DisplayMessage(string UserName, string Text, DateTime SentAt);
+    // Simple local model for display — keeps display name alongside the other fields.
+    private record DisplayMessage(string DisplayName, string Text, DateTime SentAt);
 
     private readonly List<DisplayMessage> _messages = new();
     private HubConnection? _hubConnection;
     private string _messageText = string.Empty;
     private string _statusMessage = string.Empty;
-    private string _userName = "Anon";
+
+    /// <summary>
+    /// The authenticated user's Identity ID, or null for anonymous visitors.
+    /// Passed to the service so messages are stored with the correct UserId.
+    /// </summary>
+    private string? _userId;
 
     // Can send once the hub connection is open and there is text to send.
     private bool CanSend => _hubConnection?.State == HubConnectionState.Connected
@@ -48,12 +54,12 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Determine the display name from the auth state.
+        // Extract the user ID from the NameIdentifier claim (the stable identity key).
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user.Identity?.IsAuthenticated == true)
         {
-            _userName = user.Identity.Name ?? "Anon";
+            _userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
 
         // Skip SignalR setup during server-side pre-render; it runs again interactively.
@@ -66,9 +72,11 @@
         // because this component runs on the server and can call the service directly).
         await LoadRecentMessagesAsync();
 
-        // Connect to the SignalR hub using an absolute URI (required by HubConnectionBuilder).
-        // The hub connection is used only for RECEIVING messages — sends go via IChatService.
-        var hubUrl = NavigationManager.ToAbsoluteUri($"/hubs/chat?userName={Uri.EscapeDataString(_userName)}");
+        // Connect to the SignalR hub. Pass the userId as a query string param so the hub
+        // can announce the correct display name on connect/disconnect for anon users.
+        // Authenticated connections also benefit from Context.UserIdentifier on the hub side.
+        var hubUrl = NavigationManager.ToAbsoluteUri(
+            $"/hubs/chat?userId={Uri.EscapeDataString(_userId ?? string.Empty)}");
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(hubUrl)
@@ -76,24 +84,24 @@
             .Build();
 
         // Handle incoming chat messages broadcast from any sender (API, hub, other pages).
-        _hubConnection.On<string, string, string>("ReceiveMessage", (userName, text, sentAtStr) =>
+        _hubConnection.On<string, string, string>("ReceiveMessage", (displayName, text, sentAtStr) =>
         {
             var sentAt = DateTime.TryParse(sentAtStr, out var dt) ? dt : DateTime.UtcNow;
-            _messages.Add(new DisplayMessage(userName, text, sentAt));
+            _messages.Add(new DisplayMessage(displayName, text, sentAt));
             InvokeAsync(StateHasChanged);
         });
 
         // Handle user-connected announcements.
-        _hubConnection.On<string>("UserConnected", (userName) =>
+        _hubConnection.On<string>("UserConnected", (displayName) =>
         {
-            _messages.Add(new DisplayMessage("System", $"** {userName} connected **", DateTime.UtcNow));
+            _messages.Add(new DisplayMessage("System", $"** {displayName} connected **", DateTime.UtcNow));
             InvokeAsync(StateHasChanged);
         });
 
         // Handle user-disconnected announcements.
-        _hubConnection.On<string>("UserDisconnected", (userName) =>
+        _hubConnection.On<string>("UserDisconnected", (displayName) =>
         {
-            _messages.Add(new DisplayMessage("System", $"** {userName} disconnected **", DateTime.UtcNow));
+            _messages.Add(new DisplayMessage("System", $"** {displayName} disconnected **", DateTime.UtcNow));
             InvokeAsync(StateHasChanged);
         });
 
@@ -101,15 +109,15 @@
     }
 
     /// <summary>
-    /// Loads recent message history from the database via the chat service and
-    /// pre-populates the message list so the user can see prior conversation on arrival.
+    /// Loads recent message history from the database via the chat service.
+    /// Display names are already resolved by the service; no UserManager needed here.
     /// </summary>
     private async Task LoadRecentMessagesAsync()
     {
         var recent = await ChatService.GetRecentMessagesAsync(50);
         foreach (var m in recent)
         {
-            _messages.Add(new DisplayMessage(m.UserName, m.Text, m.SentOnUtc));
+            _messages.Add(new DisplayMessage(m.DisplayName, m.Text, m.SentOnUtc));
         }
     }
 
@@ -124,10 +132,8 @@
         var text = _messageText.Trim();
         _messageText = string.Empty;
 
-        // Service handles DB persistence + SignalR broadcast.
-        // The broadcast will trigger our own "ReceiveMessage" handler above,
-        // which appends the message to the list — no need to add it manually here.
-        await ChatService.SendMessageAsync(_userName, text);
+        // Pass userId (null for anon); service resolves display name and broadcasts.
+        await ChatService.SendMessageAsync(_userId, text);
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)

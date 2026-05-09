@@ -106,7 +106,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     // Apply any pending EF Core migrations automatically on startup.
     // In production you may prefer to run migrations as a deployment step instead.
-    //await db.Database.MigrateAsync();
+    await db.Database.MigrateAsync();
 
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     await RoleSeeder.SeedRolesAsync(roleManager);
