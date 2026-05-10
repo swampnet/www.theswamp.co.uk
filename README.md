@@ -80,7 +80,7 @@ X-Api-Key: <value from ApiSettings:ApiKey>
 
 POST body:
 ```json
-{ "userName": "pj", "text": "Hello world" }
+{ "text": "Hello world" }
 ```
 
 ---
