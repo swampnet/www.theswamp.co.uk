@@ -42,19 +42,6 @@
 </div>
 
 <!-- ------------------------------------------------------------------ -->
-<!-- Phone number                                                         -->
-<!-- ------------------------------------------------------------------ -->
-<h4>Phone number</h4>
-<div style="max-width:400px; margin-bottom:24px;">
-    <div style="display:flex; gap:8px;">
-        <input @bind="_phoneNumber" type="tel" maxlength="50"
-               placeholder="Phone number (optional)"
-               style="flex:1;" />
-        <button @onclick="SavePhoneNumberAsync">Save</button>
-    </div>
-</div>
-
-<!-- ------------------------------------------------------------------ -->
 <!-- API Key                                                              -->
 <!-- ------------------------------------------------------------------ -->
 <h4>API Key</h4>
@@ -133,9 +120,6 @@ else
     // Display name
     private string _displayName = string.Empty;
 
-    // Phone number
-    private string _phoneNumber = string.Empty;
-
     // API key
     private bool _hasApiKey;
     private string _newRawKey = string.Empty;
@@ -161,9 +145,8 @@ else
         if (user is null) { return; }
 
         _displayName = user.DisplayName ?? string.Empty;
-        _phoneNumber = user.PhoneNumber ?? string.Empty;
 
-        _hasApiKey = await DbContext.Users
+        _hasApiKey= await DbContext.Users
             .Where(u => u.Id == _userId && u.ApiKeyHash != null)
             .AnyAsync();
 
@@ -199,34 +182,6 @@ else
         {
             _displayName = user.DisplayName ?? string.Empty;
             _statusMessage = "Display name saved.";
-        }
-        else
-        {
-            _errorMessage = string.Join("; ", result.Errors.Select(e => e.Description));
-        }
-    }
-
-    // ------------------------------------------------------------------ //
-    // Phone number                                                         //
-    // ------------------------------------------------------------------ //
-
-    private async Task SavePhoneNumberAsync()
-    {
-        ClearMessages();
-
-        if (_userId is null) { return; }
-
-        var user = await UserManager.FindByIdAsync(_userId);
-        if (user is null) { _errorMessage = "User not found."; return; }
-
-        var result = await UserManager.SetPhoneNumberAsync(
-            user,
-            string.IsNullOrWhiteSpace(_phoneNumber) ? null : _phoneNumber.Trim());
-
-        if (result.Succeeded)
-        {
-            _phoneNumber = user.PhoneNumber ?? string.Empty;
-            _statusMessage = "Phone number saved.";
         }
         else
         {

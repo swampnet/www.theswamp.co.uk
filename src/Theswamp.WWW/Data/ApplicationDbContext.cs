@@ -19,6 +19,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         base.OnModelCreating(builder);
 
+        // PhoneNumber and PhoneNumberConfirmed are never captured — exclude from schema.
+        builder.Entity<ApplicationUser>()
+            .Ignore(u => u.PhoneNumber)
+            .Ignore(u => u.PhoneNumberConfirmed);
+
         // Index on SentAt so we can efficiently query recent messages.
         builder.Entity<ChatMessage>()
             .ToTable("ChatMessage")
