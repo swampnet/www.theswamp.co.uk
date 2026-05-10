@@ -24,7 +24,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .Ignore(u => u.PhoneNumber)
             .Ignore(u => u.PhoneNumberConfirmed);
 
-        // Index on SentAt so we can efficiently query recent messages.
+        // Index on SentOnUtc so we can efficiently query recent messages.
         builder.Entity<ChatMessage>()
             .ToTable("ChatMessage")
             .HasIndex(m => m.SentOnUtc);

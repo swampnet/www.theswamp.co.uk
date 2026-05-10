@@ -56,4 +56,7 @@ Api calls under an /api/ route
 [ ] Add wine review AI
 [X] Consolidate Account/Manage, Test, Profile and Api-Key pages under a single page
 [X] Add api docs
-[ ] Drop Phone Number from user / account / everything
+[X] Drop Phone Number from user / account / everything
+[ ] Move navigation menu items from the left side of the page to the top, and make it a bit nicer. Maybe use a hamburger menu on mobile. 
+    The main home page should have a hero banner that takes up the full width of the page, with a welcome message.
+    
