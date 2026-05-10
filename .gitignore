@@ -22,3 +22,4 @@ packages/
 ## OS
 .DS_Store
 Thumbs.db
+/src/TheSwamp.WWW/appsettings.json
