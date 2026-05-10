@@ -15,10 +15,12 @@ public class ApiKeyMiddleware
 	private const string ApiKeyHeader = "X-Api-Key";
 
 	private readonly RequestDelegate _next;
+	private readonly ILogger<ApiKeyMiddleware> _logger;
 
-	public ApiKeyMiddleware(RequestDelegate next)
+	public ApiKeyMiddleware(RequestDelegate next, ILogger<ApiKeyMiddleware> logger)
 	{
 		_next = next;
+		_logger = logger;
 	}
 
 	public async Task InvokeAsync(HttpContext context)
@@ -38,6 +40,10 @@ public class ApiKeyMiddleware
 		if (!context.Request.Headers.TryGetValue(ApiKeyHeader, out var rawKey)
 			|| string.IsNullOrWhiteSpace(rawKey))
 		{
+			_logger.LogWarning(
+				"API request rejected — missing {Header} header: {Method} {Path}",
+				ApiKeyHeader, context.Request.Method, context.Request.Path);
+
 			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 			await context.Response.WriteAsync("Unauthorized.");
 			return;
@@ -46,6 +52,10 @@ public class ApiKeyMiddleware
 		var user = await apiKeyService.ValidateAsync(rawKey!);
 		if (user is null)
 		{
+			_logger.LogWarning(
+				"API request rejected — invalid API key: {Method} {Path}",
+				context.Request.Method, context.Request.Path);
+
 			context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 			await context.Response.WriteAsync("Unauthorized.");
 			return;

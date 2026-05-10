@@ -48,7 +48,7 @@ Api calls under an /api/ route
 [X] Add ApiKey to user table, and use that for api authentication instead of the api-key in the config. Might want to consider caching the api keys in memory for performance, and invalidate the cache when api keys are updated.
 [X] Add a page for users to manage their api key (generate new, revoke etc)
 [ ] Create test project and add some unit tests for the api endpoints and orchestration logic
-[ ] Add logging and error handling. Structured logging - I'm used to Serilog so use that if we can integrate it with all the other stuff. 
+[X] Add logging and error handling. Structured logging - I'm used to Serilog so use that if we can integrate it with all the other stuff (Azure, Aspire). 
     Log to console for now, but make it easy to add other sinks later (file, seq etc)
 [X] Deploy from GitHub
 [ ] Duplicate current www.theswamp.co.uk home page

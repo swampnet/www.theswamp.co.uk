@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Serilog;
+using Serilog.Sinks.OpenTelemetry;
 using TheSwamp.WWW.Components;
 using TheSwamp.WWW.Components.Account;
 using TheSwamp.WWW.Data;
@@ -10,7 +12,55 @@ using TheSwamp.WWW.Hubs;
 using TheSwamp.WWW.Middleware;
 using TheSwamp.WWW.Services;
 
+// Bootstrap logger captures any startup errors before the full Serilog config is ready.
+Log.Logger = new LoggerConfiguration()
+	.WriteTo.Console()
+	.CreateBootstrapLogger();
+
+try
+{
+
 var builder = WebApplication.CreateBuilder(args);
+
+// ---------------------------------------------------------------------------
+// Logging — Serilog
+// ---------------------------------------------------------------------------
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+	configuration
+		.ReadFrom.Configuration(context.Configuration)
+		.ReadFrom.Services(services)
+		.Enrich.FromLogContext();
+
+	// When running under Aspire, the OTLP endpoint env var is set automatically.
+	// Wire up the OpenTelemetry sink so logs appear in the Aspire dashboard.
+	var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT");
+	if (!string.IsNullOrWhiteSpace(otlpEndpoint))
+	{
+		configuration.WriteTo.OpenTelemetry(opts =>
+		{
+			opts.Endpoint = otlpEndpoint.TrimEnd('/') + "/v1/logs";
+			opts.Protocol = OtlpProtocol.HttpProtobuf;
+
+			// Parse "key=value,key=value" headers injected by Aspire.
+			var headersRaw = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_HEADERS");
+			if (!string.IsNullOrWhiteSpace(headersRaw))
+			{
+				foreach (var pair in headersRaw.Split(','))
+				{
+					var parts = pair.Split('=', 2);
+					if (parts.Length == 2)
+					{
+						opts.Headers[parts[0].Trim()] = parts[1].Trim();
+					}
+				}
+			}
+
+			opts.ResourceAttributes["service.name"] =
+				Environment.GetEnvironmentVariable("OTEL_SERVICE_NAME") ?? "TheSwamp-www";
+		});
+	}
+});
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -159,19 +209,24 @@ var app = builder.Build();
 // ---------------------------------------------------------------------------
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    // Apply any pending EF Core migrations automatically on startup.
-    // In production you may prefer to run migrations as a deployment step instead.
-    await db.Database.MigrateAsync();
+	var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+	var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    await RoleSeeder.SeedRolesAsync(roleManager);
+	Log.Information("Applying pending database migrations...");
+	await db.Database.MigrateAsync();
+	Log.Information("Database migrations applied");
+
+	var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+	await RoleSeeder.SeedRolesAsync(roleManager, logger);
 }
 
 // ---------------------------------------------------------------------------
 // HTTP pipeline
 // ---------------------------------------------------------------------------
 app.UseForwardedHeaders();
+
+// Structured HTTP request logging — one log event per request instead of multiple.
+app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())
 {
@@ -214,3 +269,13 @@ app.MapRazorComponents<App>()
 app.MapAdditionalIdentityEndpoints();
 
 app.Run();
+
+}
+catch (Exception ex) when (ex is not OperationCanceledException)
+{
+	Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+	Log.CloseAndFlush();
+}

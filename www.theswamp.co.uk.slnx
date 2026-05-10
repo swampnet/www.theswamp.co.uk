@@ -4,6 +4,7 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/Solution Items/documents/">
+    <File Path="documents/logging.md" />
     <File Path="documents/requirements.md" />
     <File Path="documents/whats-all-this-about-then.md" />
   </Folder>

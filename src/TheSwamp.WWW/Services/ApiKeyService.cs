@@ -11,11 +11,13 @@ public class ApiKeyService : IApiKeyService
 {
 	private readonly UserManager<ApplicationUser> _userManager;
 	private readonly ApiKeyCache _cache;
+	private readonly ILogger<ApiKeyService> _logger;
 
-	public ApiKeyService(UserManager<ApplicationUser> userManager, ApiKeyCache cache)
+	public ApiKeyService(UserManager<ApplicationUser> userManager, ApiKeyCache cache, ILogger<ApiKeyService> logger)
 	{
 		_userManager = userManager;
 		_cache = cache;
+		_logger = logger;
 	}
 
 	/// <inheritdoc />
@@ -45,6 +47,8 @@ public class ApiKeyService : IApiKeyService
 				$"Failed to save API key: {string.Join("; ", result.Errors.Select(e => e.Description))}");
 		}
 
+		_logger.LogInformation("API key generated for user {UserId}", userId);
+
 		// Do NOT pre-populate the cache here — the first authenticated request will do it.
 		// This avoids the cache and DB drifting if the update somehow fails mid-flight.
 
@@ -64,6 +68,8 @@ public class ApiKeyService : IApiKeyService
 
 		user.ApiKeyHash = null;
 		await _userManager.UpdateAsync(user);
+
+		_logger.LogInformation("API key revoked for user {UserId}", userId);
 	}
 
 	/// <inheritdoc />
@@ -79,6 +85,8 @@ public class ApiKeyService : IApiKeyService
 		// Fast path: cache hit avoids a DB round-trip.
 		if (_cache.TryGet(hash, out var cachedUserId))
 		{
+			_logger.LogDebug("API key validated via cache for user {UserId}", cachedUserId);
+
 			// Return the full user object so callers have identity info if needed.
 			return await _userManager.FindByIdAsync(cachedUserId);
 		}
@@ -91,6 +99,8 @@ public class ApiKeyService : IApiKeyService
 
 		if (user is not null)
 		{
+			_logger.LogDebug("API key validated via DB for user {UserId} (cache populated)", user.Id);
+
 			// Populate the cache so future requests are served without a DB hit.
 			_cache.Set(hash, user.Id);
 		}

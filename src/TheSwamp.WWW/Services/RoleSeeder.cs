@@ -24,13 +24,18 @@ public static class RoleSeeder
 	/// Ensures all required roles exist. Call this during app startup
 	/// after the database has been migrated.
 	/// </summary>
-	public static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)
+	public static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager, ILogger logger)
 	{
 		foreach (var roleName in Roles)
 		{
 			if (!await roleManager.RoleExistsAsync(roleName))
 			{
 				await roleManager.CreateAsync(new IdentityRole(roleName));
+				logger.LogInformation("Role '{RoleName}' created", roleName);
+			}
+			else
+			{
+				logger.LogDebug("Role '{RoleName}' already exists", roleName);
 			}
 		}
 	}
