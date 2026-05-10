@@ -22,7 +22,6 @@ and fill in the values:
 | Key | Where to get it |
 |---|---|
 | `ConnectionStrings:DefaultConnection` | LocalDB is the default; no change needed for dev |
-| `ApiSettings:ApiKey` | Any strong random string (e.g. a GUID) |
 | `Authentication:Microsoft:*` | [Azure Portal → App registrations](https://portal.azure.com) |
 | `Authentication:Google:*` | [Google Cloud Console → Credentials](https://console.cloud.google.com) |
 | `Authentication:GitHub:*` | [GitHub → Developer settings → OAuth Apps](https://github.com/settings/developers) |
