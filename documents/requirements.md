@@ -59,4 +59,4 @@ Api calls under an /api/ route
 [X] Drop Phone Number from user / account / everything
 [X] Move navigation menu items from the left side of the page to the top, and make it a bit nicer. Maybe use a hamburger menu on mobile. 
     The main home page should have a hero banner that takes up the full width of the page, with a welcome message.
-    
+[X] Display build version

@@ -4,6 +4,23 @@ html, body {
     color: #e0e0e0;
 }
 
+.page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.page > main {
+    flex: 1;
+}
+
+.site-footer {
+    text-align: right;
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+    color: #555;
+}
+
 a, .btn-link {
     color: #90caf9;
 }

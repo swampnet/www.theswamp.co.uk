@@ -7,6 +7,9 @@
     <File Path="documents/requirements.md" />
     <File Path="documents/whats-all-this-about-then.md" />
   </Folder>
+  <Folder Name="/Solution Items/workflows/">
+    <File Path=".github/workflows/main_theswamp.yml" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/TheSwamp.Orchestration/TheSwamp.Orchestration.csproj" />
     <Project Path="src/TheSwamp.WWW/TheSwamp.WWW.csproj" />
