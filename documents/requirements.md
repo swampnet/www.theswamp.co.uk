@@ -50,7 +50,7 @@ Api calls under an /api/ route
 [ ] Create test project and add some unit tests for the api endpoints and orchestration logic
 [ ] Add logging and error handling. Structured logging - I'm used to Serilog so use that if we can integrate it with all the other stuff. 
     Log to console for now, but make it easy to add other sinks later (file, seq etc)
-[ ] Deploy from GitHub
+[X] Deploy from GitHub
 [ ] Duplicate current www.theswamp.co.uk home page
 [ ] Add wine search
 [ ] Add wine review AI
