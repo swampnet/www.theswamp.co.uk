@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
@@ -10,6 +11,14 @@ using TheSwamp.WWW.Middleware;
 using TheSwamp.WWW.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Trust all proxies — Azure App Service sits behind Microsoft's load balancer
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // ---------------------------------------------------------------------------
 // Razor components + Interactive Server rendering (Blazor Server mode)
@@ -162,6 +171,8 @@ using (var scope = app.Services.CreateScope())
 // ---------------------------------------------------------------------------
 // HTTP pipeline
 // ---------------------------------------------------------------------------
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();

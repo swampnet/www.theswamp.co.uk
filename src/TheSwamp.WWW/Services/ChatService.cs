@@ -72,7 +72,10 @@ public class ChatService : IChatService
     /// <inheritdoc />
     public async Task<IReadOnlyList<ChatMessageDto>> GetRecentMessagesAsync(int count = 50)
     {
+        var dt = DateTime.UtcNow.AddDays(-17);
+
         var messages = await _db.ChatMessages
+            .Where(m => m.SentOnUtc > dt)
             .OrderByDescending(m => m.SentOnUtc)
             .Take(count)
             .OrderBy(m => m.SentOnUtc) // return oldest-first to the caller
