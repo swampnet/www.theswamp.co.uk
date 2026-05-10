@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/Solution Items/documents/">
     <File Path="documents/requirements.md" />
+    <File Path="documents/whats-all-this-about-then.md" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/TheSwamp.Orchestration/TheSwamp.Orchestration.csproj" />

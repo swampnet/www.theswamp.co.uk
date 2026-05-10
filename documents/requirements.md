@@ -56,3 +56,4 @@ Api calls under an /api/ route
 [ ] Add wine review AI
 [X] Consolidate Account/Manage, Test, Profile and Api-Key pages under a single page
 [X] Add api docs
+[ ] Drop Phone Number from user / account / everything
