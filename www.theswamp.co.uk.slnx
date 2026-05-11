@@ -6,7 +6,6 @@
   <Folder Name="/Solution Items/documents/">
     <File Path="documents/logging.md" />
     <File Path="documents/requirements.md" />
-    <File Path="documents/whats-all-this-about-then.md" />
   </Folder>
   <Folder Name="/Solution Items/workflows/">
     <File Path=".github/workflows/main_theswamp.yml" />
