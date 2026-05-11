@@ -17,13 +17,13 @@ namespace TheSwamp.WWW.Services
         private const string API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
         private readonly IConfiguration _cfg;
-        private readonly ILogger<WineService> _logger;
+        private readonly ILogger<AIService> _logger;
         private readonly HttpClient _httpClient;
-        private string _systemPrompt;
+        private string? _systemPrompt;
 
         public string? Model { get; }
 
-        public AIService(IConfiguration cfg, ILogger<WineService> logger)
+        public AIService(IConfiguration cfg, ILogger<AIService> logger)
         {
             _cfg = cfg;
             _logger = logger;
@@ -92,7 +92,6 @@ namespace TheSwamp.WWW.Services
 
                 if (token is not null)
                 {
-                    _logger.LogDebug(token);
                     yield return token;
                 }
             }

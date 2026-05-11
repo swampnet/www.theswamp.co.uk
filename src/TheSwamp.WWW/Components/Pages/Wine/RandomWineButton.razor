@@ -8,6 +8,6 @@
     private async Task RandomAsync()
     {
         var id = await _wine.RandomLWIN();
-        _nav.NavigateTo($"wines/{id}");
+        _nav.NavigateTo($"/wines/{id}");
     }
 }

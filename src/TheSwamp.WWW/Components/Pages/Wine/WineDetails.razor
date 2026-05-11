@@ -75,7 +75,7 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_streamingStarted || _details is null)
+        if (!RendererInfo.IsInteractive || _streamingStarted || _details is null)
         {
             return;
         }
@@ -94,13 +94,5 @@ else
         }
 
         await _chat.SendMessageAsync(null, $"Reviewed {_details.Display}");
-    }
-
-
-    private async Task RandomAsync()
-    {
-        _details = null;
-        var id = await _wine.RandomLWIN();
-        _nav.NavigateTo($"wines/{id}");
     }
 }
