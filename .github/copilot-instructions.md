@@ -63,7 +63,7 @@ All message sends go through `IChatService.SendMessageAsync(string? userId, stri
 - Persists to `ChatMessage` table with `UserId` (nullable FK to `AspNetUsers.Id`) — never a raw username
 - Resolves display name at send time via `UserManager<ApplicationUser>`; broadcasts resolved name to SignalR clients
 - `ConnectionTracker` (singleton `ConcurrentDictionary`) tracks active SignalR connections; admin panel in `Chat.razor` reads from it live
-- `GetRecentMessagesAsync` returns messages from the **last 17 days** (up to the requested count) — not purely count-based
+- `GetRecentMessagesAsync` returns messages from the **last 24 hours** (up to the requested count) — not purely count-based
 - API-posted messages (`POST /api/messages`) always use `null` for `userId`, so they display as `"Anon"` in chat
 
 ### Authentication

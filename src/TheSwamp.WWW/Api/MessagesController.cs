@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TheSwamp.WWW.Models;
 using TheSwamp.WWW.Services;
 
@@ -44,7 +45,8 @@ public class MessagesController : ControllerBase
             return BadRequest("Message text cannot be empty.");
         }
 
-        var message = await _chatService.SendMessageAsync(null, request.Text);
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var message = await _chatService.SendMessageAsync(userId, request.Text);
         return Ok(message);
     }
 }

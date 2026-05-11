@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using TheSwamp.WWW.Services;
 
 namespace TheSwamp.WWW.Middleware;
@@ -60,6 +61,17 @@ public class ApiKeyMiddleware
 			await context.Response.WriteAsync("Unauthorized.");
 			return;
 		}
+
+		// Build a ClaimsPrincipal from the validated user and attach it to the request.
+		// This mirrors what standard authentication middleware does (e.g. JwtBearer),
+		// so controllers can read HttpContext.User / User.FindFirstValue(...) as normal.
+		var claims = new[]
+		{
+			new Claim(ClaimTypes.NameIdentifier, user.Id),
+			new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? user.Id),
+		};
+		var identity = new ClaimsIdentity(claims, authenticationType: "ApiKey");
+		context.User = new ClaimsPrincipal(identity);
 
 		await _next(context);
 	}
