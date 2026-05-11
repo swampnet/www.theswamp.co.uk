@@ -24,7 +24,7 @@ jobs:
           dotnet-version: '10.x'
 
       - name: Build with dotnet
-        run: dotnet build --configuration Release
+        run: dotnet build src/TheSwamp.WWW/TheSwamp.WWW.csproj --configuration Release
 
       - name: dotnet publish
         run: dotnet publish src/TheSwamp.WWW/TheSwamp.WWW.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp /p:InformationalVersion=1.0.${{ github.run_number }}
@@ -62,4 +62,5 @@ jobs:
           app-name: 'theswamp'
           slot-name: 'Production'
           package: .
+          startup-command: 'dotnet TheSwamp.WWW.dll'
           
