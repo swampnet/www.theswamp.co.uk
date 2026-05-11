@@ -1,0 +1,68 @@
+﻿@page "/wine-search"
+@rendermode InteractiveServer
+@inject TheSwamp.WWW.Services.IWineSearchService _wineSearch;
+
+<h3>Wine Search</h3>
+
+<div>
+    <input @bind="_term" @bind:event="oninput" @onkeydown="OnKeyDown" placeholder="Search term..." maxlength="100" />
+    <button @onclick="Search" disabled="@(!CanSearch)">Search</button>
+</div>
+
+@if(_results == null)
+{
+    <div></div>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Description</th>
+                <th>Producer</th>
+                <th>Country</th>
+                <th>Region</th>
+                <th>Colour</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach(var wine in _results)
+            {
+                <tr>
+                    <td>@wine.Display</td>
+                    <td>@wine.Producer</td>
+                    <td>@wine.Country</td>
+                    <td>@wine.Region</td>
+                    <td>@wine.Colour</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private IReadOnlyCollection<WineDto>? _results = null;
+    private string _term = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+    private bool CanSearch => !string.IsNullOrWhiteSpace(_term);
+
+    private async Task Search()
+    {
+        _results = null;
+        _results = await _wineSearch.Search(_term);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await Search();
+        }
+    }
+
+}

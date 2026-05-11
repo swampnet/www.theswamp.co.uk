@@ -29,4 +29,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .ToTable("ChatMessage")
             .HasIndex(m => m.SentOnUtc);
     }
+
+
+    public async Task<IReadOnlyCollection<WineDto>> SearchWineAsync(string term)
+    {
+        var xx = await Database.SqlQuery<WineDto>($"exec [lwin].[Search] @term = {term}").ToArrayAsync();
+
+        return xx;
+    }
 }
