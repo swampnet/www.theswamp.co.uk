@@ -8,6 +8,14 @@
     private async Task RandomAsync()
     {
         var id = await _wine.RandomLWIN();
+
+        // The service can currently return 0 when no random wine exists.
+        // Avoid navigating to /wines/0, which leaves the page in an invalid state.
+        if (id <= 0)
+        {
+            return;
+        }
+
         _nav.NavigateTo($"/wines/{id}");
     }
 }
