@@ -26,6 +26,11 @@ public class ApiKeyService : IApiKeyService
 		var user = await _userManager.FindByIdAsync(userId)
 			?? throw new InvalidOperationException($"User '{userId}' not found.");
 
+		if (!await _userManager.IsInRoleAsync(user, "api"))
+		{
+			throw new InvalidOperationException("User does not have the 'api' role.");
+		}
+
 		// Evict the old key from cache before overwriting so there is no window
 		// where both the old and new key are simultaneously valid.
 		if (!string.IsNullOrEmpty(user.ApiKeyHash))
@@ -83,12 +88,18 @@ public class ApiKeyService : IApiKeyService
 		var hash = HashKey(rawKey);
 
 		// Fast path: cache hit avoids a DB round-trip.
-		if (_cache.TryGet(hash, out var cachedUserId))
+		if (_cache.TryGet(hash, out var entry) && entry is not null)
 		{
-			_logger.LogDebug("API key validated via cache for user {UserId}", cachedUserId);
+			if (!entry.HasApiRole)
+			{
+				_logger.LogDebug("API key rejected — user {UserId} does not have the api role (cache)", entry.UserId);
+				return null;
+			}
+
+			_logger.LogDebug("API key validated via cache for user {UserId}", entry.UserId);
 
 			// Return the full user object so callers have identity info if needed.
-			return await _userManager.FindByIdAsync(cachedUserId);
+			return await _userManager.FindByIdAsync(entry.UserId);
 		}
 
 		// Cache miss: query the DB. Only one user should ever have this hash (unique key).
@@ -99,10 +110,20 @@ public class ApiKeyService : IApiKeyService
 
 		if (user is not null)
 		{
-			_logger.LogDebug("API key validated via DB for user {UserId} (cache populated)", user.Id);
+			var hasApiRole = await _userManager.IsInRoleAsync(user, "api");
+
+			_logger.LogDebug(
+				"API key validated via DB for user {UserId}, hasApiRole={HasApiRole} (cache populated)",
+				user.Id, hasApiRole);
 
 			// Populate the cache so future requests are served without a DB hit.
-			_cache.Set(hash, user.Id);
+			// Store the role flag so subsequent requests don't need to re-check.
+			_cache.Set(hash, user.Id, hasApiRole);
+
+			if (!hasApiRole)
+			{
+				return null;
+			}
 		}
 
 		return user;

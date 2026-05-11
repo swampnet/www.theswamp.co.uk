@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "admin")]
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<IdentityRole> RoleManager
+@inject TheSwamp.WWW.Services.ApiKeyCache ApiKeyCache
 
 <PageTitle>Admin</PageTitle>
 
@@ -165,6 +166,13 @@
         var result = await UserManager.RemoveFromRoleAsync(user, roleName);
         if (result.Succeeded)
         {
+            // If the "api" role was removed, immediately evict any cached API key for this
+            // user so their requests are rejected without waiting for the next cache miss.
+            if (roleName == "api")
+            {
+                ApiKeyCache.RemoveByUserId(user.Id);
+            }
+
             _statusMessage = $"Role '{roleName}' removed from {user.Email}.";
             await LoadDataAsync();
         }

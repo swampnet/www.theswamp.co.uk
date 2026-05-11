@@ -9,28 +9,44 @@ namespace TheSwamp.WWW.Services;
 /// Keys are stored as SHA-256 hashes (not raw values) — the same format stored in the DB.
 /// This means a cache hit requires only a hash comparison; the raw key is never retained
 /// in memory after the middleware has finished hashing it.
+///
+/// Each cache entry also stores whether the owning user has the "api" role, so the
+/// middleware can enforce role-based access without a DB round-trip on every request.
 /// </summary>
 public class ApiKeyCache
 {
-	// Maps SHA-256 hex hash → the owner's Identity user ID.
-	private readonly ConcurrentDictionary<string, string> _entries = new(StringComparer.Ordinal);
+	/// <summary>Data stored per cached key hash.</summary>
+	public record CacheEntry(string UserId, bool HasApiRole);
+
+	// Primary map: SHA-256 hex hash → cache entry.
+	private readonly ConcurrentDictionary<string, CacheEntry> _byHash = new(StringComparer.Ordinal);
+
+	// Reverse map: userId → hash, used to evict a user's entry by ID (e.g. on role removal).
+	private readonly ConcurrentDictionary<string, string> _byUserId = new(StringComparer.Ordinal);
 
 	/// <summary>
-	/// Attempts to resolve a user ID from a cached key hash.
-	/// Returns true and sets <paramref name="userId"/> if found.
+	/// Attempts to resolve a cache entry from a key hash.
+	/// Returns true and sets <paramref name="entry"/> if found.
 	/// </summary>
-	public bool TryGet(string keyHash, out string userId)
+	public bool TryGet(string keyHash, out CacheEntry? entry)
 	{
-		return _entries.TryGetValue(keyHash, out userId!);
+		return _byHash.TryGetValue(keyHash, out entry);
 	}
 
 	/// <summary>
-	/// Adds or updates a cache entry mapping <paramref name="keyHash"/> → <paramref name="userId"/>.
+	/// Adds or updates a cache entry for the given key hash.
 	/// Called after a successful DB validation so subsequent requests are served from memory.
 	/// </summary>
-	public void Set(string keyHash, string userId)
+	public void Set(string keyHash, string userId, bool hasApiRole)
 	{
-		_entries[keyHash] = userId;
+		// If this userId already has a cached hash (e.g. key was regenerated), remove the stale entry.
+		if (_byUserId.TryGetValue(userId, out var oldHash) && oldHash != keyHash)
+		{
+			_byHash.TryRemove(oldHash, out _);
+		}
+
+		_byHash[keyHash] = new CacheEntry(userId, hasApiRole);
+		_byUserId[userId] = keyHash;
 	}
 
 	/// <summary>
@@ -39,6 +55,22 @@ public class ApiKeyCache
 	/// </summary>
 	public void Remove(string keyHash)
 	{
-		_entries.TryRemove(keyHash, out _);
+		if (_byHash.TryRemove(keyHash, out var entry))
+		{
+			_byUserId.TryRemove(entry.UserId, out _);
+		}
+	}
+
+	/// <summary>
+	/// Removes a cache entry by user ID.
+	/// Call this when the "api" role is removed from a user so their cached key is
+	/// immediately invalidated without waiting for the next cache miss.
+	/// </summary>
+	public void RemoveByUserId(string userId)
+	{
+		if (_byUserId.TryRemove(userId, out var hash))
+		{
+			_byHash.TryRemove(hash, out _);
+		}
 	}
 }

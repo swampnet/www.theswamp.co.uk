@@ -63,14 +63,17 @@ All message sends go through `IChatService.SendMessageAsync(string? userId, stri
 - Persists to `ChatMessage` table with `UserId` (nullable FK to `AspNetUsers.Id`) — never a raw username
 - Resolves display name at send time via `UserManager<ApplicationUser>`; broadcasts resolved name to SignalR clients
 - `ConnectionTracker` (singleton `ConcurrentDictionary`) tracks active SignalR connections; admin panel in `Chat.razor` reads from it live
+- `GetRecentMessagesAsync` returns messages from the **last 17 days** (up to the requested count) — not purely count-based
+- API-posted messages (`POST /api/messages`) always use `null` for `userId`, so they display as `"Anon"` in chat
 
 ### Authentication
 
 - Cookie-based via ASP.NET Core Identity
-- External OIDC: Microsoft Entra ID, Google, GitHub — configured in `appsettings.json`
-- Role `"admin"` is seeded by `RoleSeeder` on startup
+- External OIDC: Microsoft Entra ID is the only active provider; Google and GitHub are wired up but commented out in `Program.cs`
+- Roles `"admin"` and `"api"` are seeded by `RoleSeeder` on startup
 - First admin must be assigned manually via SQL (see README); subsequent admins via the `/admin` page
 - API endpoints use a separate `X-Api-Key` header (not cookies)
+- Users must have the `"api"` role to generate/use an API key; removing the role immediately invalidates the cache
 
 ### Database
 
@@ -78,6 +81,18 @@ All message sends go through `IChatService.SendMessageAsync(string? userId, stri
 - `ChatMessage` table (mapped via `.ToTable("ChatMessage")` in `OnModelCreating`) — `Id` (bigint), `UserId` (nullable, MaxLength 450), `Text`, `SentOnUtc`
 - `DbSet` property is named `ChatMessages` but the underlying table is `ChatMessage` — don't confuse the two
 - Migrations run automatically on startup via `db.Database.MigrateAsync()`
+- `PhoneNumber` / `PhoneNumberConfirmed` are intentionally excluded from `ApplicationUser` via `.Ignore()` in `OnModelCreating`
+
+### ApplicationUser custom properties
+
+`ApplicationUser` extends `IdentityUser` with two extra columns:
+
+| Property | Type | Purpose |
+|---|---|---|
+| `DisplayName` | `string?` (MaxLength 100) | User-chosen display name; takes precedence over `UserName` and `Email` in all display contexts |
+| `ApiKeyHash` | `string?` (MaxLength 64) | SHA-256 hex of the active API key; `null` means no key |
+
+Display name resolution order (used by `ChatService.GetDisplayNameAsync`): `DisplayName` → `UserName` → `Email` → `"Anon"`
 
 ---
 
@@ -116,11 +131,13 @@ All message sends go through `IChatService.SendMessageAsync(string? userId, stri
 ### API
 
 - All `/api/*` routes require `X-Api-Key: <value>` header
+- The key owner must have the `"api"` role — requests from users without it return 401
+- Swagger UI is available at `/swagger` in all environments; spec at `/swagger/v1/swagger.json`
 - Keys are **per-user**, stored as SHA-256 hashes in `AspNetUsers.ApiKeyHash` (never the raw key)
-- `ApiKeyCache` (singleton) — `ConcurrentDictionary<hash, userId>` for fast in-memory lookup; evicted on revoke/regenerate
-- `IApiKeyService` (scoped) — `GenerateAsync`, `RevokeAsync`, `ValidateAsync(rawKey)` — checks cache first, falls back to DB
+- `ApiKeyCache` (singleton) — maps `hash → CacheEntry(userId, hasApiRole)` with a reverse `userId → hash` map; evict by hash on revoke/regenerate, by userId when the `"api"` role is removed
+- `IApiKeyService` (scoped) — `GenerateAsync`, `RevokeAsync`, `ValidateAsync(rawKey)` — checks cache first, falls back to DB; role check is always cache-free after the first validation
 - Middleware resolves `IApiKeyService` from `context.RequestServices` (avoids scoped-in-singleton lifetime issue)
-- Users manage their key at `/account/api-key` (generate → raw key shown once; revoke)
+- Users manage their key at `/Account/Manage` (generate → raw key shown once; revoke)
 
 ### Secrets / config
 

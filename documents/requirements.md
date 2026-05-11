@@ -61,3 +61,4 @@ Api calls under an /api/ route
     The main home page should have a hero banner that takes up the full width of the page, with a welcome message.
 [X] Display build version
 [ ] Assign a made up username to 'Anon' chat users. Link to the COnnectionID I guess?
+[X] Api access should live behind a role ('api') - If a user doesn't have that role, then they can't create / refresh an api-key and any requests using that api-key will get rejected

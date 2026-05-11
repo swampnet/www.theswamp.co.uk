@@ -18,7 +18,7 @@ namespace TheSwamp.WWW.Services;
 public static class RoleSeeder
 {
 	/// <summary>All roles that must exist in the database.</summary>
-	private static readonly string[] Roles = ["admin"];
+	private static readonly string[] Roles = ["admin", "api"];
 
 	/// <summary>
 	/// Ensures all required roles exist. Call this during app startup
