@@ -27,7 +27,7 @@ jobs:
         run: dotnet build --configuration Release
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp /p:InformationalVersion=1.0.${{ github.run_number }}
+        run: dotnet publish src/TheSwamp.WWW/TheSwamp.WWW.csproj -c Release -o ${{env.DOTNET_ROOT}}/myapp /p:InformationalVersion=1.0.${{ github.run_number }}
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
