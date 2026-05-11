@@ -11,6 +11,7 @@
     <File Path=".github/workflows/main_theswamp.yml" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/ImportLWIN/ImportLWIN.csproj" />
     <Project Path="src/TheSwamp.Orchestration/TheSwamp.Orchestration.csproj" />
     <Project Path="src/TheSwamp.WWW/TheSwamp.WWW.csproj" />
   </Folder>

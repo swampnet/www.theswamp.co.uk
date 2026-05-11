@@ -158,6 +158,12 @@ try
     // ApiKeyService is scoped — uses UserManager which depends on ApplicationDbContext.
     builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 
+    // WineSearchService is scoped to match ApplicationDbContext's lifetime.
+    builder.Services.AddScoped<IWineService, WineService>();
+
+    // AIService
+    builder.Services.AddTransient<IAIService, AIService>();
+
     // ---------------------------------------------------------------------------
     // API controllers (for /api/* routes)
     // ---------------------------------------------------------------------------
