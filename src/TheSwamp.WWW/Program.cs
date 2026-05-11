@@ -162,7 +162,7 @@ try
     builder.Services.AddScoped<IWineService, WineService>();
 
     // AIService
-    builder.Services.AddTransient<IAI, AIService>();
+    builder.Services.AddTransient<IAIService, AIService>();
 
     // ---------------------------------------------------------------------------
     // API controllers (for /api/* routes)

@@ -2,58 +2,57 @@
 using TheSwamp.WWW.Data;
 using TheSwamp.WWW.Models;
 
-namespace TheSwamp.WWW.Services
+namespace TheSwamp.WWW.Services;
+
+public interface IWineService
 {
-    public interface IWineService
+    Task<IReadOnlyCollection<WineDto>> Search(string term);
+    Task<WineDto?> Details(long id);
+    Task<long> RandomLWIN();
+}
+
+public class WineService : IWineService
+{
+    private readonly ApplicationDbContext _db;
+    private readonly ILogger<WineService> _logger;
+
+    public WineService(ApplicationDbContext db, ILogger<WineService> logger)
     {
-        Task<IReadOnlyCollection<WineDto>> Search(string term);
-        Task<WineDto?> Details(long id);
-        Task<long> RandomLWIN();
+        _db = db;
+        _logger = logger;
     }
 
-    public class WineService : IWineService
+
+    public async Task<IReadOnlyCollection<WineDto>> Search(string term)
     {
-        private readonly ApplicationDbContext _db;
-        private readonly ILogger<WineService> _logger;
+        var sw = Stopwatch.StartNew();
 
-        public WineService(ApplicationDbContext db, ILogger<WineService> logger)
-        {
-            _db = db;
-            _logger = logger;
-        }
+        var rs = await _db.SearchWineAsync(term);
 
+        _logger.LogInformation("'{term}' Complete in {elapsed}", term, sw.Elapsed);
 
-        public async Task<IReadOnlyCollection<WineDto>> Search(string term)
-        {
-            var sw = Stopwatch.StartNew();
+        return rs;
+    }
 
-            var rs = await _db.SearchWineAsync(term);
+    public async Task<WineDto?> Details(long id)
+    {
+        var sw = Stopwatch.StartNew();
 
-            _logger.LogInformation("'{term}' Complete in {elapsed}", term, sw.Elapsed);
+        var rs = await _db.WineDetailsAsync(id);
 
-            return rs;
-        }
+        _logger.LogInformation("'{id}' Complete in {elapsed}", id, sw.Elapsed);
 
-        public async Task<WineDto?> Details(long id)
-        {
-            var sw = Stopwatch.StartNew();
+        return rs;
+    }
 
-            var rs = await _db.WineDetailsAsync(id);
+    public async Task<long> RandomLWIN()
+    {
+        var sw = Stopwatch.StartNew();
 
-            _logger.LogInformation("'{id}' Complete in {elapsed}", id, sw.Elapsed);
+        var rs = await _db.RandomLWINIdAsync();
 
-            return rs;
-        }
+        _logger.LogInformation("'{id}' Complete in {elapsed}", rs, sw.Elapsed);
 
-        public async Task<long> RandomLWIN()
-        {
-            var sw = Stopwatch.StartNew();
-
-            var rs = await _db.RandomLWINIdAsync();
-
-            _logger.LogInformation("'{id}' Complete in {elapsed}", rs, sw.Elapsed);
-
-            return rs;
-        }
+        return rs;
     }
 }
