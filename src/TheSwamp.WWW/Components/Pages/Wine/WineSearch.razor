@@ -83,6 +83,11 @@ else if (_results is not null)
 
     private async Task Search()
     {
+        if (!CanSearch)
+        {
+            return;
+        }
+
         _results = null;
         _isLoading = true;
         try
@@ -97,7 +102,7 @@ else if (_results is not null)
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        if (e.Key == "Enter" && CanSearch)
         {
             await Search();
         }
