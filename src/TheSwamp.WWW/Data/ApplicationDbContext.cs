@@ -37,4 +37,20 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         return xx;
     }
+
+    public async Task<WineDto?> WineDetailsAsync(long id)
+    {
+        var xx = await Database.SqlQuery<WineDto>($"exec [lwin].[Details] @id = {id}").ToArrayAsync();
+
+        return xx.FirstOrDefault();
+    }
+
+
+    public async Task<long> RandomLWINIdAsync()
+    {
+        var xx = await Database.SqlQuery<long>($"exec [lwin].[GetRandomWine]").ToArrayAsync();
+
+        return xx.FirstOrDefault();
+    }
+
 }

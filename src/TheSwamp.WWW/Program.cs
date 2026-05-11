@@ -159,7 +159,10 @@ try
     builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 
     // WineSearchService is scoped to match ApplicationDbContext's lifetime.
-    builder.Services.AddScoped<IWineSearchService, WineSearchService>();
+    builder.Services.AddScoped<IWineService, WineService>();
+
+    // AIService
+    builder.Services.AddTransient<IAI, AIService>();
 
     // ---------------------------------------------------------------------------
     // API controllers (for /api/* routes)

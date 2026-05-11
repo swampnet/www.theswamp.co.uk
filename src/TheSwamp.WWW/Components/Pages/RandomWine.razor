@@ -1,0 +1,13 @@
+﻿@rendermode InteractiveServer
+@inject TheSwamp.WWW.Services.IWineService _wine;
+@inject NavigationManager _nav;
+
+<button @onclick="RandomAsync" class="btn btn-secondary btn-sm">Random</button>
+
+@code {
+    private async Task RandomAsync()
+    {
+        var id = await _wine.RandomLWIN();
+        _nav.NavigateTo($"wines/{id}");
+    }
+}
