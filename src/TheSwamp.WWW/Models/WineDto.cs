@@ -8,5 +8,6 @@ public record WineDto(
     string Country,
     string Region,
     string Colour,
-    string Type
+    string Type,
+    string? Vintage
     );

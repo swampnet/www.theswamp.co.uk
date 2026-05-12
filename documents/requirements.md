@@ -52,8 +52,8 @@ Api calls under an /api/ route
     Log to console for now, but make it easy to add other sinks later (file, seq etc)
 [X] Deploy from GitHub
 [ ] Duplicate current www.theswamp.co.uk home page
-[ ] Add wine search
-[ ] Add wine review AI
+[X] Add wine search
+[X] Add wine review AI
 [X] Consolidate Account/Manage, Test, Profile and Api-Key pages under a single page
 [X] Add api docs
 [X] Drop Phone Number from user / account / everything

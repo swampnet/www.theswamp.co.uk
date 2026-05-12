@@ -8,7 +8,8 @@ namespace TheSwamp.WWW.Services;
 public interface IAIService
 {
     void SetSystemPrompt(string prompt);
-    IAsyncEnumerable<string> StreamAsync(string userPrompt, [EnumeratorCancellation] CancellationToken cancellationToken = default);
+    IAsyncEnumerable<string> StreamAsync(string userPrompt, CancellationToken cancellationToken = default);
+    string? Model { get; }
 }
 
 
