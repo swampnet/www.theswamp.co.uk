@@ -5,7 +5,7 @@
 <PageTitle>Wine Search</PageTitle>
 
 <h3 class="mb-4">🍷 Wine Search</h3>
-<p>Noddy LWIN wine search</p>
+<p>Noddy LWIN wine search.</p>
 <div class="input-group mb-4">
     <input class="form-control"
            @bind="_term" @bind:event="oninput" @onkeydown="OnKeyDown"
@@ -47,6 +47,7 @@ else if (_results is not null)
                         <th>Producer</th>
                         <th>Country</th>
                         <th>Region</th>
+                        <th>Vintage</th>
                         <th>Colour</th>
                     </tr>
                 </thead>
@@ -59,6 +60,7 @@ else if (_results is not null)
                             <td>@wine.Producer</td>
                             <td>@wine.Country</td>
                             <td>@wine.Region</td>
+                            <td>@wine.Vintage</td>
                             <td>
                                 <span class="wine-badge @ColourBadgeClass(wine.Colour)">@wine.Colour</span>
                             </td>
