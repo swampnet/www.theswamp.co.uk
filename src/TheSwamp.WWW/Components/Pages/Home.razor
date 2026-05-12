@@ -2,10 +2,7 @@
 
 <PageTitle>The Swamp</PageTitle>
 
-<div class="hero" style="background-image: url('@_heroBg')">
-    <h1 class="hero-title">Homepage of PJ</h1>
-    <p class="hero-sub">Under construction</p>
-</div>
+<HeroBanner Title="Homepage of PJ" Sub="Under construction" />
 
 <h2>Stack</h2>
 <ul>
@@ -19,13 +16,3 @@
 </ul>
 
 <img src="/img/pi-01.jpg" />
-
-@code {
-	private string _heroBg = string.Empty;
-
-	protected override void OnInitialized()
-	{
-		var index = Random.Shared.Next(1, 6);
-		_heroBg = $"/img/hero-0{index}.webp";
-	}
-}
