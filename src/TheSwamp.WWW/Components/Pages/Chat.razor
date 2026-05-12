@@ -17,7 +17,7 @@
     {
         <div>
             <strong>@msg.DisplayName</strong>
-            <span style="color:#999; font-size:0.85em;">@msg.SentAt.ToLocalTime().ToString("HH:mm")</span>:
+            <span style="color:#999; font-size:0.85em;">@msg.SentOnUtc.ToLocalTime().ToString("HH:mm")</span>:
             @msg.Text
         </div>
     }
@@ -65,7 +65,7 @@
 
 @code {
     // Simple local model for display — keeps display name alongside the other fields.
-    private record DisplayMessage(string DisplayName, string Text, DateTime SentAt);
+    private record DisplayMessage(string DisplayName, string Text, DateTime SentOnUtc);
 
     private readonly List<DisplayMessage> _messages = new();
     private HubConnection? _hubConnection;

@@ -66,7 +66,8 @@ try
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
         // Trust all proxies — Azure App Service sits behind Microsoft's load balancer
-        options.KnownNetworks.Clear();
+        //options.KnownNetworks.Clear();
+        options.KnownIPNetworks.Clear();
         options.KnownProxies.Clear();
     });
 
@@ -170,7 +171,7 @@ try
     builder.Services.AddControllers();
 
     // ---------------------------------------------------------------------------
-    // Swagger / OpenAPI — spec generation + UI (dev only, served at /swagger)
+    // Swagger / OpenAPI — spec generation + UI (served at /swagger)
     // ---------------------------------------------------------------------------
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
