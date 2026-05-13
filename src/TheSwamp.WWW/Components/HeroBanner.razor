@@ -1,0 +1,20 @@
+<div class="hero" style="background-image: url('@_heroBg')">
+	<h1 class="hero-title">@Title</h1>
+	@if (!string.IsNullOrEmpty(Sub))
+	{
+		<p class="hero-sub">@Sub</p>
+	}
+</div>
+
+@code {
+	[Parameter] public string Title { get; set; } = string.Empty;
+	[Parameter] public string Sub { get; set; } = string.Empty;
+
+	private string _heroBg = string.Empty;
+
+	protected override void OnInitialized()
+	{
+		var index = Random.Shared.Next(1, 7);
+		_heroBg = $"/img/hero-{index:00}.webp";
+	}
+}

@@ -6,11 +6,13 @@
 @inject NavigationManager NavigationManager
 @inject TheSwamp.WWW.Services.IChatService ChatService
 @inject TheSwamp.WWW.Services.IConnectionTracker ConnectionTracker
+@inject IJSRuntime JS
 @implements IAsyncDisposable
 
 <PageTitle>Chat</PageTitle>
 
 <h2>Chat</h2>
+<p>Simple chat client using SignalR</p>
 
 <div id="chat-messages" style="height:400px; overflow-y:auto; border:1px solid #ccc; padding:8px; margin-bottom:8px;">
     @foreach (var msg in _messages)
@@ -69,8 +71,10 @@
 
     private readonly List<DisplayMessage> _messages = new();
     private HubConnection? _hubConnection;
+    private IJSObjectReference? _jsModule;  // Lazy-loaded from Chat.razor.js; null until first render.
     private string _messageText = string.Empty;
     private string _statusMessage = string.Empty;
+    private bool _scrollToBottom;    // Set after message load or a new message arrives — triggers a scroll to bottom on next render.
 
     /// <summary>
     /// The authenticated user's Identity ID, or null for anonymous visitors.
@@ -106,6 +110,12 @@
         // because this component runs on the server and can call the service directly).
         await LoadRecentMessagesAsync();
 
+        // OnAfterRenderAsync(firstRender=true) fires after the *first* render, which happens as
+        // soon as OnInitializedAsync hits its first await — before messages are loaded. Setting
+        // this flag here (after loading) ensures the scroll fires on the *next* render, when
+        // the messages are actually in the DOM. The same flag is reused for incoming messages.
+        _scrollToBottom = true;
+
         // Connect to the SignalR hub. Pass the userId as a query string param so the hub
         // can announce the correct display name on connect/disconnect for anon users.
         // Authenticated connections also benefit from Context.UserIdentifier on the hub side.
@@ -123,7 +133,9 @@
             var sentAt = DateTime.TryParse(sentAtStr, out var dt) ? dt : DateTime.UtcNow;
             _messages.Add(new DisplayMessage(displayName, text, sentAt));
             RefreshConnectedUsers();
-            InvokeAsync(StateHasChanged);
+            // Set the scroll flag and call StateHasChanged together inside InvokeAsync so both
+            // run on the Blazor sync context — ensures OnAfterRenderAsync sees the updated flag.
+            InvokeAsync(() => { _scrollToBottom = true; StateHasChanged(); });
         });
 
         // Handle user-connected announcements.
@@ -131,7 +143,7 @@
         {
             _messages.Add(new DisplayMessage("System", $"** {displayName} connected **", DateTime.UtcNow));
             RefreshConnectedUsers();
-            InvokeAsync(StateHasChanged);
+            InvokeAsync(() => { _scrollToBottom = true; StateHasChanged(); });
         });
 
         // Handle user-disconnected announcements.
@@ -139,10 +151,32 @@
         {
             _messages.Add(new DisplayMessage("System", $"** {displayName} disconnected **", DateTime.UtcNow));
             RefreshConnectedUsers();
-            InvokeAsync(StateHasChanged);
+            InvokeAsync(() => { _scrollToBottom = true; StateHasChanged(); });
         });
 
         await _hubConnection.StartAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Load the JS module once on the first interactive render.
+        if (firstRender)
+        {
+            _jsModule = await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./Components/Pages/Chat.razor.js");
+        }
+
+        if (_jsModule is null)
+        {
+            return;
+        }
+
+        // Scroll to the bottom after initial message load and after each new message.
+        if (_scrollToBottom)
+        {
+            _scrollToBottom = false;
+            await _jsModule.InvokeVoidAsync("scrollToBottom", "chat-messages");
+        }
     }
 
     /// <summary>
@@ -195,6 +229,19 @@
 
     public async ValueTask DisposeAsync()
     {
+        if (_jsModule is not null)
+        {
+            try
+            {
+                await _jsModule.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // When the browser hard-refreshes (CTRL+F5), the circuit disconnects before
+                // DisposeAsync completes, causing a JSDisconnectedException. This is expected
+                // and safe to ignore — the JS runtime is already gone at this point.
+            }
+        }
         if (_hubConnection is not null)
         {
             await _hubConnection.DisposeAsync();
