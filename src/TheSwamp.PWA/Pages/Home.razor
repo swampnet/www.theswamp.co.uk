@@ -1,0 +1,62 @@
+@page "/"
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>The Swamp</PageTitle>
+
+<div class="pwa-home">
+	<div class="pwa-home-icon">🌿</div>
+	<h1 class="pwa-home-title">The Swamp</h1>
+	<p class="pwa-home-tagline">A little corner of the internet.</p>
+
+	@if (_canInstall)
+	{
+		<button class="pwa-install-btn" @onclick="InstallAsync">
+			⬇ Install App
+		</button>
+	}
+
+	<nav class="pwa-home-nav">
+		<a href="wine" class="pwa-home-card">
+			<span class="pwa-home-card-icon">🍷</span>
+			<span class="pwa-home-card-label">Wine Search</span>
+			<span class="pwa-home-card-desc">Search the LWIN wine database</span>
+		</a>
+	</nav>
+</div>
+
+@code {
+	private bool _canInstall;
+	private DotNetObjectReference<Home>? _dotnetRef;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (!firstRender)
+		{
+			return;
+		}
+
+		_dotnetRef = DotNetObjectReference.Create(this);
+		await JS.InvokeVoidAsync("pwaRegisterInstallCallback", _dotnetRef);
+	}
+
+	[JSInvokable]
+	public void OnInstallPromptAvailable()
+	{
+		_canInstall = true;
+		StateHasChanged();
+	}
+
+	private async Task InstallAsync()
+	{
+		_canInstall = false;
+		StateHasChanged();
+		await JS.InvokeAsync<bool>("pwaInstall");
+	}
+
+	public ValueTask DisposeAsync()
+	{
+		_dotnetRef?.Dispose();
+		return ValueTask.CompletedTask;
+	}
+}

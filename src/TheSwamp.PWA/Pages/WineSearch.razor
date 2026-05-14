@@ -1,0 +1,154 @@
+@page "/wine"
+@inject WineApiService WineApi
+@implements IAsyncDisposable
+
+<PageTitle>Wine Search</PageTitle>
+
+<div class="input-group mb-4">
+	<input class="form-control"
+		   value="@_term"
+		   @oninput="OnInput"
+		   placeholder="Search by name, producer, region…"
+		   maxlength="100"
+		   autofocus />
+
+	@if (_isLoading)
+	{
+		<span class="input-group-text">
+			<span class="spinner-border spinner-border-sm text-secondary" role="status">
+				<span class="visually-hidden">Searching…</span>
+			</span>
+		</span>
+	}
+</div>
+
+@if (_error is not null)
+{
+	<div class="alert alert-danger">@_error</div>
+}
+else if (_isLoading && _results is null)
+{
+	<div class="d-flex justify-content-center my-5">
+		<div class="spinner-border text-secondary" role="status">
+			<span class="visually-hidden">Searching…</span>
+		</div>
+	</div>
+}
+else if (_results is not null)
+{
+	@if (_results.Count == 0)
+	{
+		<div class="alert alert-secondary">No wines found for "<strong>@_lastSearchedTerm</strong>".</div>
+	}
+	else
+	{
+		<p class="text-secondary small mb-2">
+			<span class="badge bg-secondary me-1">@_results.Count</span> result@(_results.Count == 1 ? "" : "s")
+		</p>
+
+		<hr />
+
+		<div class="table-responsive">
+			<table class="table table-dark table-hover table-sm table-striped align-middle">
+				<thead>
+					<tr>
+						<th>Description</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var wine in _results)
+					{
+						<tr>
+							<td>
+								<div>@wine.Display</div>
+								<div style="font-size:0.8em;color:lightgray;">
+									Produced by @wine.Producer in @wine.Region, @wine.Country
+								</div>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+@code {
+	private const int DebounceMs = 200;
+	private const int MinTermLength = 3;
+
+	private IReadOnlyCollection<WineDto>? _results;
+	private string _term = "";
+	private string _lastSearchedTerm = "";
+	private bool _isLoading;
+	private string? _error;
+	private CancellationTokenSource _debounceCts = new();
+
+	private async Task OnInput(ChangeEventArgs e)
+	{
+		_term = e.Value?.ToString() ?? "";
+
+		// Cancel any pending debounce or in-flight search
+		await _debounceCts.CancelAsync();
+		_debounceCts.Dispose();
+		_debounceCts = new CancellationTokenSource();
+
+		if (_term.Trim().Length < MinTermLength)
+		{
+			_results = null;
+			_error = null;
+			_isLoading = false;
+			return;
+		}
+
+		await RunDebouncedSearchAsync(_debounceCts.Token);
+	}
+
+	private async Task RunDebouncedSearchAsync(CancellationToken ct)
+	{
+		try
+		{
+			await Task.Delay(DebounceMs, ct);
+
+			_results = null;
+			_error = null;
+			_isLoading = true;
+			StateHasChanged();
+
+			_lastSearchedTerm = _term;
+			_results = await WineApi.SearchAsync(_term, ct);
+		}
+		catch (OperationCanceledException)
+		{
+			// Superseded by newer input — discard silently
+		}
+		catch (Exception ex)
+		{
+			_error = $"Search failed: {ex.Message}";
+		}
+		finally
+		{
+			if (!ct.IsCancellationRequested)
+			{
+				_isLoading = false;
+				StateHasChanged();
+			}
+		}
+	}
+
+	private static string ColourBadgeClass(string colour) => colour.ToLowerInvariant() switch
+	{
+		"red"                       => "wine-red",
+		"white"                     => "wine-white",
+		"rosé" or "rose"            => "wine-rose",
+		"orange"                    => "wine-orange",
+		"sparkling" or "champagne"  => "wine-sparkling",
+		_                           => "wine-other",
+	};
+
+	public async ValueTask DisposeAsync()
+	{
+		await _debounceCts.CancelAsync();
+		_debounceCts.Dispose();
+	}
+}
