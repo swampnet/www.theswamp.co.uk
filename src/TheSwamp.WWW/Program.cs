@@ -263,6 +263,16 @@ try
 
     app.MapStaticAssets();
 
+    // Serve the Blazor WASM PWA at /pwa/ — fall back to index.html for client-side routing.
+    app.MapFallbackToFile("/pwa/{*path:nonfile}", "/pwa/index.html");
+
+    // Inject the PWA API key into Blazor WASM's built-in config loading.
+    // WebAssemblyHostBuilder.CreateDefault fetches appsettings.json from the app base URL
+    // automatically, so serving it here means the key lands in IConfiguration with no
+    // manual HTTP call in the WASM app.
+    app.MapGet("/pwa/appsettings.json", (IConfiguration config) =>
+        Results.Json(new { ApiKey = config["PWA:ApiKey"] ?? string.Empty }));
+
     // SignalR hub
     app.MapHub<ChatHub>("/hubs/chat");
 

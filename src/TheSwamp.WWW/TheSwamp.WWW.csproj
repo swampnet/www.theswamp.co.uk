@@ -28,4 +28,9 @@
     <PackageReference Include="Microsoft.OpenApi" Version="2.4.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Reference the WASM PWA project so its static web assets are served by this host. -->
+    <ProjectReference Include="..\TheSwamp.PWA\TheSwamp.PWA.csproj" />
+  </ItemGroup>
+
 </Project>

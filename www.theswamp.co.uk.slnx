@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/Solution Items/documents/">
     <File Path="documents/logging.md" />
+    <File Path="documents/pwa.md" />
     <File Path="documents/requirements.md" />
   </Folder>
   <Folder Name="/Solution Items/workflows/">
@@ -13,6 +14,7 @@
   <Folder Name="/src/">
     <Project Path="src/ImportLWIN/ImportLWIN.csproj" />
     <Project Path="src/TheSwamp.Orchestration/TheSwamp.Orchestration.csproj" />
+    <Project Path="src/TheSwamp.PWA/TheSwamp.PWA.csproj" />
     <Project Path="src/TheSwamp.WWW/TheSwamp.WWW.csproj" />
   </Folder>
 </Solution>

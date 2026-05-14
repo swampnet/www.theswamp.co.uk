@@ -1,6 +1,6 @@
 # Copilot Instructions — www.theswamp.co.uk
 
-Personal website for pj. Blazor Server (.NET 10), SQL Server (LocalDB in dev), SignalR chat, OIDC auth via ASP.NET Core Identity.
+Personal website for pj. Blazor Server (.NET 10), SQL Server (LocalDB in dev), SignalR chat, OIDC auth via ASP.NET Core Identity. Includes a Blazor WASM PWA (`TheSwamp.PWA`) hosted within `TheSwamp.WWW` and served at `/pwa/`.
 
 ---
 
@@ -32,6 +32,7 @@ No automated tests exist yet.
 |---|---|
 | `src/TheSwamp.Orchestration` | .NET Aspire AppHost — launches and orchestrates `TheSwamp.WWW` |
 | `src/TheSwamp.WWW` | Blazor Server web app — all application code lives here |
+| `src/TheSwamp.PWA` | Blazor WASM PWA — hosted inside `TheSwamp.WWW`, served at `/pwa/` |
 
 Aspire project reference uses underscores: `Projects.TheSwamp_WWW` (dots → underscores, Aspire SDK convention).
 
@@ -144,7 +145,54 @@ Display name resolution order (used by `ChatService.GetDisplayNameAsync`): `Disp
 - `appsettings.json` is gitignored — never commit it
 - `appsettings.example.json` has placeholder values and IS committed
 - Keys to configure: `ConnectionStrings:DefaultConnection`, `Authentication:Microsoft:*`, `Authentication:Google:*`, `Authentication:GitHub:*`
+- PWA API key: `PWA:ApiKey` — must be the **raw key** (not the hash) for a user with the `"api"` role
 
 ### EF migrations — manual schema changes
 
 If you alter the DB schema outside EF (e.g. rename a table or column directly in SQL Server), edit the migration file that would make that change to remove the now-redundant step and use `IF EXISTS` guards or dynamic SQL where constraint names may vary. Do **not** use `dotnet ef database drop` — it drops the entire database, not just EF tables.
+
+---
+
+## PWA (TheSwamp.PWA)
+
+`TheSwamp.PWA` is a Blazor WebAssembly project referenced by `TheSwamp.WWW`. The SDK's Static Web Assets system automatically mounts all WASM output under `/pwa/` at build time — no manual route registration needed for the files themselves.
+
+### How the hosting works
+
+- `<StaticWebAssetBasePath>pwa</StaticWebAssetBasePath>` in `TheSwamp.PWA.csproj` controls the mount path
+- `app.MapStaticAssets()` in `TheSwamp.WWW/Program.cs` serves them (automatic — no extra config)
+- Two lines **must** be added manually to `TheSwamp.WWW/Program.cs`:
+
+```csharp
+// Client-side routing — return index.html for unknown paths so Blazor handles them
+app.MapFallbackToFile("/pwa/{*path:nonfile}", "/pwa/index.html");
+
+// Dynamic config — injects API key; there is no physical appsettings.json in the bundle
+app.MapGet("/pwa/appsettings.json", (IConfiguration config) =>
+    Results.Json(new { ApiKey = config["PWA:ApiKey"] ?? string.Empty }));
+```
+
+### API key injection
+
+The PWA needs an API key to call `/api/*`. The key is **never** embedded in the WASM bundle. Instead:
+
+1. `TheSwamp.WWW` serves it dynamically at `/pwa/appsettings.json` (reads `PWA:ApiKey` from server config)
+2. `TheSwamp.PWA/Program.cs` fetches that endpoint explicitly at startup using a temporary `HttpClient` before the DI container is built
+3. The resolved key is registered as a singleton `AppConfig` and injected into `WineApiService`
+4. `WineApiService` sends `X-Api-Key: <key>` on every `/api/wine` request
+
+The fetch is explicit (not relying on `WebAssemblyHostBuilder.CreateDefault` implicit config loading) so it is visible in browser DevTools and fails loudly if the endpoint is misconfigured.
+
+### PWA pages
+
+| Page | Route | Notes |
+|---|---|---|
+| `Home.razor` | `/pwa/` | Landing page with links |
+| `WineSearch.razor` | `/pwa/wine` | Wine search — calls `WineApiService` |
+
+### Blazor WASM conventions
+
+- `HttpClient.BaseAddress` must be the **site origin** (`https://theswamp.co.uk/`), not the WASM base (`/pwa/`), so `api/wine` resolves to `/api/wine` not `/pwa/api/wine`
+- `index.html` has `<base href="/pwa/">` — required for WASM routing and asset resolution
+- WASM pages do **not** use `@rendermode` — that's Blazor Server only
+- See `documents/pwa.md` for full architecture diagrams and implementation detail

@@ -1,0 +1,23 @@
+﻿@inherits LayoutComponentBase
+
+<div class="pwa-shell">
+	<header class="pwa-header">
+		<a href="" class="pwa-header-home">
+			<span class="pwa-header-icon">🌿</span>
+			<span class="pwa-header-title">The Swamp</span>
+		</a>
+		<nav class="pwa-nav">
+			<NavLink href="" Match="NavLinkMatch.All" class="pwa-nav-link">Home</NavLink>
+			<NavLink href="wine" class="pwa-nav-link">🍷 Wine</NavLink>
+		</nav>
+	</header>
+	<main class="pwa-content">
+		@Body
+	</main>
+</div>
+
+<div id="blazor-error-ui">
+	An unhandled error has occurred.
+	<a href="." class="reload">Reload</a>
+	<span class="dismiss">🗙</span>
+</div>
