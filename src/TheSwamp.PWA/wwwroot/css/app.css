@@ -99,8 +99,29 @@ html, body {
 
 .pwa-home-tagline {
     color: #a08070;
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.5rem;
     font-size: 1.05rem;
+}
+
+.pwa-install-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #7b1c2c;
+    border: 1px solid #5a1420;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 2rem;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.pwa-install-btn:hover {
+    background: #9e2437;
+    border-color: #7b1c2c;
 }
 
 .pwa-home-nav {
@@ -180,12 +201,12 @@ html, body {
     color: #e8ddd5;
 }
 
-.form-control:focus {
-    background-color: #2a1010;
-    border-color: #7b1c2c;
-    color: #e8ddd5;
-    box-shadow: 0 0 0 0.25rem rgba(123, 28, 44, 0.35);
-}
+    .form-control:focus {
+        background-color: #2a1010;
+        border-color: #7b1c2c;
+        color: #e8ddd5;
+        box-shadow: 0 0 0 0.25rem rgba(123, 28, 44, 0.35);
+    }
 
 .btn-primary {
     background-color: #7b1c2c;

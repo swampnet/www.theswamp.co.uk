@@ -31,6 +31,43 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
+    <script>
+        window._installPrompt = null;
+        window._installDotnetRef = null;
+
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window._installPrompt = e;
+            if (window._installDotnetRef) {
+                window._installDotnetRef.invokeMethodAsync('OnInstallPromptAvailable');
+            }
+        });
+
+        window.addEventListener('appinstalled', function () {
+            window._installPrompt = null;
+        });
+
+        window.pwaIsInstallable = function () {
+            return !!window._installPrompt;
+        };
+
+        window.pwaRegisterInstallCallback = function (dotnetRef) {
+            window._installDotnetRef = dotnetRef;
+            if (window._installPrompt) {
+                dotnetRef.invokeMethodAsync('OnInstallPromptAvailable');
+            }
+        };
+
+        window.pwaInstall = async function () {
+            if (!window._installPrompt) { return false; }
+            window._installPrompt.prompt();
+            const result = await window._installPrompt.userChoice;
+            if (result.outcome === 'accepted') {
+                window._installPrompt = null;
+            }
+            return result.outcome === 'accepted';
+        };
+    </script>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
     <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
 </body>

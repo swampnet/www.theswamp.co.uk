@@ -2,7 +2,7 @@
 @inject WineApiService WineApi
 @implements IAsyncDisposable
 
-<PageTitle>Wine Search — The Swamp</PageTitle>
+<PageTitle>Wine Search</PageTitle>
 
 <div class="input-group mb-4">
 	<input class="form-control"
@@ -11,6 +11,7 @@
 		   placeholder="Search by name, producer, region…"
 		   maxlength="100"
 		   autofocus />
+
 	@if (_isLoading)
 	{
 		<span class="input-group-text">
@@ -80,7 +81,7 @@ else if (_results is not null)
 }
 
 @code {
-	private const int DebounceMs = 300;
+	private const int DebounceMs = 200;
 	private const int MinTermLength = 3;
 
 	private IReadOnlyCollection<WineDto>? _results;
