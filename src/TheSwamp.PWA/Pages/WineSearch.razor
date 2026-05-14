@@ -1,22 +1,31 @@
 @page "/wine"
 @inject WineApiService WineApi
+@implements IAsyncDisposable
 
 <PageTitle>Wine Search — The Swamp</PageTitle>
 
 <div class="input-group mb-4">
 	<input class="form-control"
-		   @bind="_term" @bind:event="oninput" @onkeydown="OnKeyDown"
+		   value="@_term"
+		   @oninput="OnInput"
 		   placeholder="Search by name, producer, region…"
 		   maxlength="100"
 		   autofocus />
-	<button class="btn btn-primary" @onclick="Search" disabled="@(!CanSearch)">Search</button>
+	@if (_isLoading)
+	{
+		<span class="input-group-text">
+			<span class="spinner-border spinner-border-sm text-secondary" role="status">
+				<span class="visually-hidden">Searching…</span>
+			</span>
+		</span>
+	}
 </div>
 
 @if (_error is not null)
 {
 	<div class="alert alert-danger">@_error</div>
 }
-else if (_isLoading)
+else if (_isLoading && _results is null)
 {
 	<div class="d-flex justify-content-center my-5">
 		<div class="spinner-border text-secondary" role="status">
@@ -28,7 +37,7 @@ else if (_results is not null)
 {
 	@if (_results.Count == 0)
 	{
-		<div class="alert alert-secondary">No wines found for "<strong>@_term</strong>".</div>
+		<div class="alert alert-secondary">No wines found for "<strong>@_lastSearchedTerm</strong>".</div>
 	}
 	else
 	{
@@ -71,27 +80,53 @@ else if (_results is not null)
 }
 
 @code {
+	private const int DebounceMs = 300;
+	private const int MinTermLength = 3;
+
 	private IReadOnlyCollection<WineDto>? _results;
 	private string _term = "";
+	private string _lastSearchedTerm = "";
 	private bool _isLoading;
 	private string? _error;
+	private CancellationTokenSource _debounceCts = new();
 
-	private bool CanSearch => !string.IsNullOrWhiteSpace(_term) && !_isLoading;
-
-	private async Task Search()
+	private async Task OnInput(ChangeEventArgs e)
 	{
-		if (!CanSearch)
+		_term = e.Value?.ToString() ?? "";
+
+		// Cancel any pending debounce or in-flight search
+		await _debounceCts.CancelAsync();
+		_debounceCts.Dispose();
+		_debounceCts = new CancellationTokenSource();
+
+		if (_term.Trim().Length < MinTermLength)
 		{
+			_results = null;
+			_error = null;
+			_isLoading = false;
 			return;
 		}
 
-		_results = null;
-		_error = null;
-		_isLoading = true;
+		await RunDebouncedSearchAsync(_debounceCts.Token);
+	}
 
+	private async Task RunDebouncedSearchAsync(CancellationToken ct)
+	{
 		try
 		{
-			_results = await WineApi.SearchAsync(_term);
+			await Task.Delay(DebounceMs, ct);
+
+			_results = null;
+			_error = null;
+			_isLoading = true;
+			StateHasChanged();
+
+			_lastSearchedTerm = _term;
+			_results = await WineApi.SearchAsync(_term, ct);
+		}
+		catch (OperationCanceledException)
+		{
+			// Superseded by newer input — discard silently
 		}
 		catch (Exception ex)
 		{
@@ -99,15 +134,11 @@ else if (_results is not null)
 		}
 		finally
 		{
-			_isLoading = false;
-		}
-	}
-
-	private async Task OnKeyDown(KeyboardEventArgs e)
-	{
-		if (e.Key == "Enter" && CanSearch)
-		{
-			await Search();
+			if (!ct.IsCancellationRequested)
+			{
+				_isLoading = false;
+				StateHasChanged();
+			}
 		}
 	}
 
@@ -120,4 +151,10 @@ else if (_results is not null)
 		"sparkling" or "champagne"  => "wine-sparkling",
 		_                           => "wine-other",
 	};
+
+	public async ValueTask DisposeAsync()
+	{
+		await _debounceCts.CancelAsync();
+		_debounceCts.Dispose();
+	}
 }
