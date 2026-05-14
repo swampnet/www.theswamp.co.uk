@@ -114,7 +114,7 @@ app.MapGet("/pwa/_content/{**path}", (string path) =>
 
 **Cause:** `<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>` in `TheSwamp.PWA.csproj` causes `index.html` to be embedded in the DLL (for Blazor's import-map injection pipeline) rather than published as a static file. `MapFallbackToFile` can't find it, so every request to `/pwa/` 404s. The dev build serves it via the source-linked static web asset manifest, which is why it works locally.
 
-**Fix:** Remove `<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>` from `TheSwamp.PWA.csproj`. The WASM app is hosted manually via `MapFallbackToFile`, not via `MapRazorComponents`, so it doesn't need that property.
+**Fix:** Remove `<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>` from `TheSwamp.PWA.csproj` (this property causes `index.html` to be embedded in the DLL rather than published as a static file). Also update `index.html` to use the non-fingerprinted script path `_framework/blazor.webassembly.js` — without the property, the `#[.{fingerprint}]` placeholder is never substituted so the browser requests a literally-named file that doesn't exist. The non-fingerprinted route is served by `MapStaticAssets()` with `Cache-Control: no-cache`.
 
 ---
 

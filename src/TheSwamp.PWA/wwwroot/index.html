@@ -67,7 +67,10 @@
             return result.outcome === 'accepted';
         };
     </script>
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <!-- Non-fingerprinted path: OverrideHtmlAssetPlaceholders is not used so this must be
+         a literal filename. Both fingerprinted and non-fingerprinted routes are served by
+         MapStaticAssets; the non-fingerprinted version uses Cache-Control: no-cache. -->
+    <script src="_framework/blazor.webassembly.js"></script>
     <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
 </body>
 
