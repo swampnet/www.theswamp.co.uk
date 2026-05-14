@@ -53,24 +53,17 @@ else if (_results is not null)
 				<thead>
 					<tr>
 						<th>Description</th>
-						<th>Producer</th>
-						<th>Country</th>
-						<th>Region</th>
-						<th>Vintage</th>
-						<th>Colour</th>
 					</tr>
 				</thead>
 				<tbody>
 					@foreach (var wine in _results)
 					{
 						<tr>
-							<td>@wine.Display</td>
-							<td>@wine.Producer</td>
-							<td>@wine.Country</td>
-							<td>@wine.Region</td>
-							<td>@wine.Vintage</td>
 							<td>
-								<span class="wine-badge @ColourBadgeClass(wine.Colour)">@wine.Colour</span>
+								<div>@wine.Display</div>
+								<div style="font-size:0.8em;color:lightgray;">
+									Produced by @wine.Producer in @wine.Region, @wine.Country
+								</div>
 							</td>
 						</tr>
 					}
