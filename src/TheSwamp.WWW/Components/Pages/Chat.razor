@@ -14,16 +14,23 @@
 <h2>Chat</h2>
 <p>Simple chat client using SignalR</p>
 
-<div id="chat-messages" style="height:400px; overflow-y:auto; border:1px solid #ccc; padding:8px; margin-bottom:8px;">
-    @foreach (var msg in _messages)
-    {
-        <div>
-            <strong>@msg.DisplayName</strong>
-            <span style="color:#999; font-size:0.85em;">@msg.SentOnUtc.ToLocalTime().ToString("HH:mm")</span>:
-            @msg.Text
-        </div>
-    }
-</div>
+@if (_isLoading)
+{
+    <div>Loading history...</div>
+}
+else
+{
+    <div id="chat-messages" style="height:400px; overflow-y:auto; border:1px solid #ccc; padding:8px; margin-bottom:8px;">
+        @foreach (var msg in _messages.ToArray())
+        {
+            <div>
+                <strong>@msg.DisplayName</strong>
+                <span style="color:#999; font-size:0.85em;">@msg.SentOnUtc.ToLocalTime().ToString("HH:mm")</span>:
+                @msg.Text
+            </div>
+        }
+    </div>
+}
 
 <div style="display:flex; gap:8px;">
     <input @bind="_messageText" @bind:event="oninput" @onkeydown="OnKeyDown"
@@ -75,6 +82,7 @@
     private string _messageText = string.Empty;
     private string _statusMessage = string.Empty;
     private bool _scrollToBottom;    // Set after message load or a new message arrives — triggers a scroll to bottom on next render.
+    private bool _isLoading = true;
 
     /// <summary>
     /// The authenticated user's Identity ID, or null for anonymous visitors.
@@ -185,12 +193,21 @@
     /// </summary>
     private async Task LoadRecentMessagesAsync()
     {
-        var recent = await ChatService.GetRecentMessagesAsync(50);
-        foreach (var m in recent)
+        try
         {
-            _messages.Add(new DisplayMessage(m.DisplayName, m.Text, m.SentOnUtc));
+            _isLoading = true;
+            var recent = await ChatService.GetRecentMessagesAsync(50);
+            foreach (var m in recent)
+            {
+                _messages.Add(new DisplayMessage(m.DisplayName, m.Text, m.SentOnUtc));
+            }
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
+
 
     /// <summary>
     /// Refreshes the connected users snapshot from the tracker.
