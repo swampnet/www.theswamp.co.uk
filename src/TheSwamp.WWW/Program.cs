@@ -263,6 +263,21 @@ try
 
     app.MapStaticAssets();
 
+    // The WASM runtime resolves _content paths relative to the document base (/pwa/), so
+    // it requests /pwa/_content/... — but RCL static assets are served at /_content/...
+    // Redirect /pwa/_content/** → /_content/** so the browser finds them.
+    app.MapGet("/pwa/_content/{**path}", (string path) =>
+        Results.Redirect("/_content/" + path));
+
+    // Serve the Blazor WASM PWA at /pwa/ — fall back to index.html for client-side routing.
+    app.MapFallbackToFile("/pwa/{*path:nonfile}", "/pwa/index.html");
+
+    // Inject the PWA API key for Blazor WASM startup.
+    // TheSwamp.PWA/Program.cs fetches this endpoint explicitly before building DI so
+    // the key is available to AppConfig and WineApiService.
+    app.MapGet("/pwa/appsettings.json", (IConfiguration config) =>
+        Results.Json(new { ApiKey = config["PWA:ApiKey"] ?? string.Empty }));
+
     // SignalR hub
     app.MapHub<ChatHub>("/hubs/chat");
 
