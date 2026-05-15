@@ -8,7 +8,7 @@ Personal website for pj. Blazor Server (.NET 10), SQL Server, SignalR chat, OIDC
 
 - .NET 10 SDK
 - SQL Server LocalDB (ships with Visual Studio)
-- An account on Azure Portal, Google Cloud Console, and GitHub (for OIDC)
+- An account on Azure Portal, Google Cloud Console, and/or GitHub (for OIDC)
 
 ---
 
@@ -48,8 +48,7 @@ migrated and roles seeded automatically on first run.
 
 ### 4. Assign the first admin user
 
-After registering/logging in for the first time, run this SQL against the
-`TheswampWWW` LocalDB database:
+After registering/logging in for the first time, run this SQL against the database:
 
 ```sql
 INSERT INTO AspNetUserRoles (UserId, RoleId)
@@ -74,7 +73,7 @@ X-Api-Key: <value from ApiSettings:ApiKey>
 
 | Method | URL | Description |
 |---|---|---|
-| GET | `/api/forecast` | Example — 5-day weather forecast |
+| GET | `/api/wine?term` | Search LWIN data |
 | GET | `/api/messages` | Last 50 chat messages |
 | POST | `/api/messages` | Post a message (broadcasts via SignalR) |
 
@@ -115,23 +114,3 @@ app.MapGet("/pwa/_content/{**path}", (string path) =>
 **Cause:** `<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>` in `TheSwamp.PWA.csproj` causes `index.html` to be embedded in the DLL (for Blazor's import-map injection pipeline) rather than published as a static file. `MapFallbackToFile` can't find it, so every request to `/pwa/` 404s. The dev build serves it via the source-linked static web asset manifest, which is why it works locally.
 
 **Fix:** Remove `<OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>` from `TheSwamp.PWA.csproj` (this property causes `index.html` to be embedded in the DLL rather than published as a static file). Also update `index.html` to use the non-fingerprinted script path `_framework/blazor.webassembly.js` — without the property, the `#[.{fingerprint}]` placeholder is never substituted so the browser requests a literally-named file that doesn't exist. The non-fingerprinted route is served by `MapStaticAssets()` with `Cache-Control: no-cache`.
-
----
-
-## Project structure
-
-```
-src/
-  Theswamp.Orchestration/   .NET Aspire AppHost
-  Theswamp.WWW/
-    Api/                    API controllers (/api/*)
-    Components/
-      Pages/                Blazor pages
-      Layout/               NavMenu, MainLayout
-      Account/              Identity scaffolded pages
-    Data/                   DbContext, ApplicationUser, Migrations
-    Hubs/                   SignalR ChatHub
-    Middleware/             ApiKeyMiddleware
-    Models/                 ChatMessage entity
-    Services/               RoleSeeder
-```
