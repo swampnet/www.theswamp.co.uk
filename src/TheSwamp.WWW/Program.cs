@@ -131,7 +131,7 @@ try
     // ---------------------------------------------------------------------------
     builder.Services.AddIdentityCore<ApplicationUser>(options =>
         {
-            options.SignIn.RequireConfirmedAccount = true;
+            options.SignIn.RequireConfirmedAccount = false;
             options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         })
         .AddRoles<IdentityRole>()  // enables role management
