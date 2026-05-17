@@ -73,6 +73,7 @@ All message sends go through `IChatService.SendMessageAsync(string? userId, stri
 - **Local password authentication is disabled** — there is no username/password login form. Users authenticate via OIDC or passkeys only.
 - External OIDC: Microsoft Entra ID is the only active provider; Google and GitHub are wired up but commented out in `Program.cs`
 - Passkeys (WebAuthn/FIDO2) are supported as an alternative to OIDC — managed under `/Account/Manage/Passkeys`
+- `RequireConfirmedAccount = false` — email confirmation is disabled. New users created via OIDC (`ExternalLogin.razor`) have their email auto-confirmed immediately at account creation time; the OIDC provider has already verified their identity.
 - Roles `"admin"` and `"api"` are seeded by `RoleSeeder` on startup
 - First admin must be assigned manually via SQL (see README); subsequent admins via the `/admin` page
 - API endpoints use a separate `X-Api-Key` header (not cookies)

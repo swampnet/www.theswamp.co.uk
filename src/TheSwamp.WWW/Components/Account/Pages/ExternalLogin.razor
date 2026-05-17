@@ -133,6 +133,8 @@
         }
     }
 
+    // New user — no existing login for this provider. Create an account.
+    // Email is pre-filled from the OIDC claim if available; the user confirms it and clicks Register.
     private async Task OnValidSubmitAsync()
     {
         if (externalLoginInfo is null)

@@ -16,8 +16,6 @@
         <section>
             <ExternalLoginPicker />
 
-            @* <PasskeySubmit Operation="PasskeyOperation.Request" Name="Input.Passkey" class="btn btn-primary">Log in with a passkey</PasskeySubmit> *@
-
             <EditForm EditContext="editContext" method="post" OnValidSubmit="LoginUser" FormName="passkey-login">
                  @if (!string.IsNullOrEmpty(errorMessage))
                  {

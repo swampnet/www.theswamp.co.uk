@@ -131,6 +131,9 @@ try
     // ---------------------------------------------------------------------------
     builder.Services.AddIdentityCore<ApplicationUser>(options =>
         {
+            // Email confirmation is disabled — auth is OIDC + passkeys only.
+            // The OIDC provider has already verified the user's identity; new users are
+            // auto-confirmed in ExternalLogin.razor at account creation time.
             options.SignIn.RequireConfirmedAccount = false;
             options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         })
