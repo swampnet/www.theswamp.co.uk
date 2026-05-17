@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Reflection
+@inherits LayoutComponentBase
 
 <div class="pwa-shell">
 	<header class="pwa-header">
@@ -14,4 +15,16 @@
 	<main class="pwa-content">
 		@Body
 	</main>
+	<footer class="pwa-footer">
+		<span>v@_version</span>
+	</footer>
 </div>
+
+@code {
+	private string _version = Assembly
+		.GetExecutingAssembly()
+		.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+		?.InformationalVersion
+		.Split('+')[0]
+		?? "dev";
+}
