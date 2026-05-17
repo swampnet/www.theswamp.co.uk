@@ -15,7 +15,6 @@
 			@if (_user is not null)
 			{
 				<NavLink href="profile" class="pwa-nav-link">👤 @_user.DisplayName</NavLink>
-				<a href="/pwa/logout" class="pwa-nav-link" @onclick="Logout" @onclick:preventDefault>Logout</a>
 			}
 			else if (_fetched)
 			{
@@ -46,10 +45,5 @@
 	{
 		_user = await Auth.GetUserAsync();
 		_fetched = true;
-	}
-
-	private void Logout()
-	{
-		Nav.NavigateTo("/pwa/logout", forceLoad: true);
 	}
 }
