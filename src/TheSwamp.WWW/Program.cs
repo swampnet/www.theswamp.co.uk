@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -129,7 +131,10 @@ try
     // ---------------------------------------------------------------------------
     builder.Services.AddIdentityCore<ApplicationUser>(options =>
         {
-            options.SignIn.RequireConfirmedAccount = true;
+            // Email confirmation is disabled — auth is OIDC + passkeys only.
+            // The OIDC provider has already verified the user's identity; new users are
+            // auto-confirmed in ExternalLogin.razor at account creation time.
+            options.SignIn.RequireConfirmedAccount = false;
             options.Stores.SchemaVersion = IdentitySchemaVersions.Version3;
         })
         .AddRoles<IdentityRole>()  // enables role management
@@ -256,6 +261,8 @@ try
 
     app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
     app.UseHttpsRedirection();
+    app.UseAuthentication();
+    app.UseAuthorization();
     app.UseAntiforgery();
 
     // API key middleware — must run before controller routing so all /api routes are protected.
@@ -277,6 +284,27 @@ try
     // the key is available to AppConfig and WineApiService.
     app.MapGet("/pwa/appsettings.json", (IConfiguration config) =>
         Results.Json(new { ApiKey = config["PWA:ApiKey"] ?? string.Empty }));
+
+    // PWA auth endpoints — outside /api/ so ApiKeyMiddleware is bypassed; cookie auth applies.
+    app.MapGet("/pwa/me", async (ClaimsPrincipal user, UserManager<ApplicationUser> userManager) =>
+    {
+        var appUser = await userManager.GetUserAsync(user);
+        if (appUser is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var roles = await userManager.GetRolesAsync(appUser);
+        var displayName = appUser.DisplayName ?? appUser.UserName ?? appUser.Email ?? "User";
+
+        return Results.Ok(new { displayName, roles });
+    }).RequireAuthorization();
+
+    app.MapGet("/pwa/logout", async (HttpContext context) =>
+    {
+        await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+        return Results.Redirect("/pwa/");
+    });
 
     // SignalR hub
     app.MapHub<ChatHub>("/hubs/chat");

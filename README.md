@@ -45,7 +45,7 @@ migrated and roles seeded automatically on first run.
 
 ### Assign the first admin user
 
-After registering/logging in for the first time, run this SQL against the database:
+After logging in for the first time (via OIDC), run this SQL against the database:
 
 ```sql
 INSERT INTO AspNetUserRoles (UserId, RoleId)

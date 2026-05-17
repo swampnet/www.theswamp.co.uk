@@ -35,5 +35,6 @@ var appConfig = new AppConfig { ApiKey = apiKey };
 builder.Services.AddSingleton(appConfig);
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(origin) });
 builder.Services.AddScoped<WineApiService>();
+builder.Services.AddScoped<AuthService>();
 
 await builder.Build().RunAsync();

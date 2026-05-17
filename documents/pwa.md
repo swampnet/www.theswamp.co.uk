@@ -12,6 +12,7 @@ src/
     Pages/
       Home.razor          Landing page
       WineSearch.razor    Wine search UI (@page "/wine")
+      Profile.razor       Authenticated user profile — display name, roles, logout (@page "/profile")
     Layout/
       MainLayout.razor    Shell with header + nav bar
     Models/
@@ -97,7 +98,7 @@ The project reference handles ~95% of the wiring. The two manual lines exist onl
 │  │  Blazor WASM (TheSwamp.PWA)                 │    │
 │  │  running in WebAssembly runtime             │    │
 │  │                                             │    │
-│  │  Pages: Home, WineSearch                    │    │
+│  │  Pages: Home, WineSearch, Profile              │    │
 │  │  Services: WineApiService                   │    │
 │  │  AppConfig { ApiKey }                       │    │
 │  └──────────────┬──────────────────────────────┘    │

@@ -1,4 +1,7 @@
-﻿@inherits LayoutComponentBase
+﻿@using System.Reflection
+@inject AuthService Auth
+@inject NavigationManager Nav
+@inherits LayoutComponentBase
 
 <div class="pwa-shell">
 	<header class="pwa-header">
@@ -9,9 +12,38 @@
 		<nav class="pwa-nav">
 			<NavLink href="" Match="NavLinkMatch.All" class="pwa-nav-link">Home</NavLink>
 			<NavLink href="wine" class="pwa-nav-link">🍷 Wine</NavLink>
+			@if (_user is not null)
+			{
+				<NavLink href="profile" class="pwa-nav-link">👤 @_user.DisplayName</NavLink>
+			}
+			else if (_fetched)
+			{
+				<a href="/Account/Login?ReturnUrl=%2Fpwa%2F" class="pwa-nav-link">Login</a>
+			}
 		</nav>
 	</header>
 	<main class="pwa-content">
 		@Body
 	</main>
+	<footer class="pwa-footer">
+		<span>v@_version</span>
+	</footer>
 </div>
+
+@code {
+	private TheSwamp.PWA.Models.UserInfo? _user;
+	private bool _fetched;
+
+	private string _version = Assembly
+		.GetExecutingAssembly()
+		.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+		?.InformationalVersion
+		.Split('+')[0]
+		?? "dev";
+
+	protected override async Task OnInitializedAsync()
+	{
+		_user = await Auth.GetUserAsync();
+		_fetched = true;
+	}
+}

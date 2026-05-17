@@ -20,7 +20,7 @@ This is a personal web page, it should be clean but minimal. We will work on the
 
 SignalR hub (for chat messages initially. Will expand later)
 
-Most pages are public, use OIDC (Entra, Google, Github) for authentication
+Most pages are public, use OIDC (Entra, Google, Github) for authentication. Local password authentication is not supported — login is via OIDC or passkeys only.
 
 ### API
 
@@ -43,7 +43,7 @@ Api calls under an /api/ route
 [X] pass user id (or null) to chat post. Use username if given, else 'Anon': Do not pass username from client, get it on the server based on user id. 
     This is more secure and prevents impersonation.
 [X] If user is admin, show a list of all connected users & their connection ids + ip address in the chat page.
-[ ] MFA setup
+[ ] MFA setup (N/A — local password authentication has been removed; auth is OIDC + passkeys only)
 [X] Rename: Theswamp -> TheSwamp
 [X] Add ApiKey to user table, and use that for api authentication instead of the api-key in the config. Might want to consider caching the api keys in memory for performance, and invalidate the cache when api keys are updated.
 [X] Add a page for users to manage their api key (generate new, revoke etc)

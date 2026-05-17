@@ -1,0 +1,51 @@
+@page "/profile"
+@inject AuthService Auth
+@inject NavigationManager Nav
+
+<PageTitle>My Profile</PageTitle>
+
+@if (_user is null)
+{
+	<div class="d-flex justify-content-center my-5">
+		<div class="spinner-border text-secondary" role="status">
+			<span class="visually-hidden">Loading…</span>
+		</div>
+	</div>
+}
+else
+{
+	<div class="pwa-profile">
+		<h2 class="pwa-profile-name">@_user.DisplayName</h2>
+
+		@if (_user.Roles.Count > 0)
+		{
+			<div class="pwa-profile-roles mb-3">
+				@foreach (var role in _user.Roles)
+				{
+					<span class="badge bg-secondary me-1">@role</span>
+				}
+			</div>
+		}
+
+		<a href="/Account/Manage" class="btn btn-outline-secondary btn-sm">
+			⚙ Account settings
+		</a>
+		<a href="/pwa/logout" class="btn btn-outline-danger btn-sm ms-2">
+			Logout
+		</a>
+	</div>
+}
+
+@code {
+	private TheSwamp.PWA.Models.UserInfo? _user;
+
+	protected override async Task OnInitializedAsync()
+	{
+		_user = await Auth.GetUserAsync();
+
+		if (_user is null)
+		{
+			Nav.NavigateTo("/Account/Login?ReturnUrl=%2Fpwa%2Fprofile", forceLoad: true);
+		}
+	}
+}
