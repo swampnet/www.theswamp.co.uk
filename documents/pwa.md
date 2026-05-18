@@ -98,7 +98,7 @@ The project reference handles ~95% of the wiring. The two manual lines exist onl
 │  │  Blazor WASM (TheSwamp.PWA)                 │    │
 │  │  running in WebAssembly runtime             │    │
 │  │                                             │    │
-│  │  Pages: Home, WineSearch, Profile              │    │
+│  │  Pages: Home, WineSearch, Profile           │    │
 │  │  Services: WineApiService                   │    │
 │  │  AppConfig { ApiKey }                       │    │
 │  └──────────────┬──────────────────────────────┘    │
